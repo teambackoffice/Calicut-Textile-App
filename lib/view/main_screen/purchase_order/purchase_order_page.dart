@@ -1,3 +1,4 @@
+import 'package:calicut_textile_app/view/main_screen/purchase_order/create_purchase_order.dart';
 import 'package:flutter/material.dart';
 
 class PurchaseOrderPage extends StatefulWidget {
@@ -233,14 +234,14 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // Handle new purchase order creation
+          Navigator.push(context, MaterialPageRoute(builder: (context)=> CreatePurchaseOrder()));
         },
         backgroundColor: const Color(0xFF3B82F6),
         foregroundColor: Colors.white,
         elevation: 8,
         icon: const Icon(Icons.add),
         label: const Text(
-          'New Order',
+          'New PO',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),

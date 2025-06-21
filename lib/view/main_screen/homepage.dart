@@ -148,7 +148,7 @@ class _HomepageState extends State<Homepage> {
                     onTap: () {
                       Navigator.push(
   context,
-  MaterialPageRoute(builder: (context) => SupplierPage()),
+  MaterialPageRoute(builder: (context) => SuppliersPage()),
 );
                     },
                   ),
@@ -156,9 +156,11 @@ class _HomepageState extends State<Homepage> {
                 ],
               ),
             ),
+
           ],
         ),
       ),
+
 
 
      
