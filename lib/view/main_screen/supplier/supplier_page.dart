@@ -141,19 +141,7 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // Handle new purchase order creation
-        },
-        backgroundColor: const Color(0xFF3B82F6),
-        foregroundColor: Colors.white,
-        elevation: 8,
-        icon: const Icon(Icons.add),
-        label: const Text(
-          'New Supplier',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-      ),
+      
     );
   }
 }
