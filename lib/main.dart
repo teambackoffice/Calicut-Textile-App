@@ -1,3 +1,4 @@
+import 'package:calicut_textile_app/view/main_screen/homepage.dart';
 import 'package:calicut_textile_app/view/main_screen/login_screen/login_page.dart';
 import 'package:flutter/material.dart';
 
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       
       
-      home: const LoginScreen(),
+      home: const Homepage(),
     );
   }
 }
