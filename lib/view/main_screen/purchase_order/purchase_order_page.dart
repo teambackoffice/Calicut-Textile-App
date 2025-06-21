@@ -1,4 +1,4 @@
-import 'package:calicut_textile_app/view/main_screen/purchase_order/create_purchase_order.dart';
+import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/create_purchase_order.dart';
 import 'package:flutter/material.dart';
 
 class PurchaseOrderPage extends StatefulWidget {
