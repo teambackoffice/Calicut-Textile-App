@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 // Model class for Item
 class Item {
@@ -109,6 +112,9 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   
   final List<String> _uomOptions = ['PCS', 'KG', 'L', 'M', 'SQM', 'CUM'];
 
+  List<File> _selectedImages = [];
+  final ImagePicker _imagePicker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
@@ -140,6 +146,192 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
             .toList();
       }
     });
+  }
+
+   
+  Future<void> _pickImage(ImageSource source) async {
+    if (_selectedImages.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Maximum 3 images allowed'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImages.add(File(pickedFile.path));
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Image added successfully!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error picking image: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Image removed'),
+        backgroundColor: Colors.grey[600],
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 1),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+   void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          margin: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Text(
+                      'Select Image Source',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                              _pickImage(ImageSource.camera);
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 20),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.camera_alt, color: Colors.blue, size: 32),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Camera',
+                                    style: TextStyle(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                              _pickImage(ImageSource.gallery);
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 20),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.photo_library, color: Colors.green, size: 32),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Gallery',
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Clear all images (useful when resetting form)
+  void _clearAllImages() {
+    setState(() {
+      _selectedImages.clear();
+    });
+  }
+
+  // Get image paths for saving
+  List<String> getImagePaths() {
+    return _selectedImages.map((image) => image.path).toList();
   }
 
   void _selectItem(Item item) {
@@ -306,7 +498,6 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
 
                 // Item Code & Name (only if creating new)
                 if (_isCreatingNew) ...[
@@ -316,29 +507,8 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Item Code',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: widget.itemCodeController,
-                              validator: (value) => value?.isEmpty == true ? 'Required' : null,
-                              decoration: InputDecoration(
-                                hintText: 'Enter item code',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 20,
-                                ),
-                              ),
-                            ),
+                            
+                          
                           ],
                         ),
                       ),
@@ -518,9 +688,135 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                       ),
                     ),
                   ),
+
+                  SizedBox(height: 24,),
+                   Text(
+                  'Item Images',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                 // Selected Images Display
+                if (_selectedImages.isNotEmpty) ...[
+                  Container(
+                    height: 120,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _selectedImages.length,
+                      itemBuilder: (context, index) {
+                        return Container(
+                          margin: EdgeInsets.only(right: 12),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(
+                                  _selectedImages[index],
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: () => _removeImage(index),
+                                  child: Container(
+                                    padding: EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withOpacity(0.8),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Image number indicator
+                              
+                              
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Add Image Button
+                Container(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _selectedImages.length < 3 ? _showImageSourceDialog : null,
+                    icon: Icon(
+                      _selectedImages.isEmpty ? Icons.add_a_photo : Icons.add_photo_alternate,
+                      size: 20,
+                    ),
+                    label: Text(
+                      _selectedImages.isEmpty 
+                        ? 'Add Images (Optional)' 
+                        : 'Add More Images (${_selectedImages.length}/3)',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      side: BorderSide(
+                        color: _selectedImages.length < 3 ? Colors.blue : Colors.grey[300]!,
+                        width: 1.5,
+                      ),
+                      foregroundColor: _selectedImages.length < 3 ? Colors.blue : Colors.grey[500],
+                      backgroundColor: _selectedImages.length < 3 ? Colors.blue.withOpacity(0.05) : Colors.grey[50],
+                    ),
+                  ),
+                ),
+
+                // Image Guidelines
+                const SizedBox(height: 12),
+                // Container(
+                //   padding: EdgeInsets.all(12),
+                //   decoration: BoxDecoration(
+                //     color: Colors.blue.withOpacity(0.05),
+                //     borderRadius: BorderRadius.circular(12),
+                //     border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                //   ),
+                //   child: Row(
+                //     crossAxisAlignment: CrossAxisAlignment.start,
+                //     children: [
+                //       Icon(
+                //         Icons.info_outline,
+                //         color: Colors.blue[600],
+                //         size: 16,
+                //       ),
+                //       SizedBox(width: 8),
+                //       Expanded(
+                //         child: Text(
+                //           '• You can add up to 3 images\n• Images will be compressed for optimal storage\n• Supported formats: JPG, PNG\n• Tap the camera/gallery button to add images',
+                //           style: TextStyle(
+                //             fontSize: 12,
+                //             color: Colors.blue[700],
+                //             height: 1.4,
+                //           ),
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
+              ],
                 ],
               ],
-            ],
+            
           ),
         ),
       ),

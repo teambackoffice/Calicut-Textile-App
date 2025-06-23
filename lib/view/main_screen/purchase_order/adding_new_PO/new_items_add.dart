@@ -77,7 +77,7 @@ class ItemsAdding extends StatelessWidget {
             return null;
           },
           decoration: InputDecoration(
-            labelText: 'Quantity',
+            labelText: 'Quantitqqqy',
             prefixIcon: const Icon(Icons.numbers),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
