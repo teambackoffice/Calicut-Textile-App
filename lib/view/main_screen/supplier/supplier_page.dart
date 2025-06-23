@@ -6,8 +6,8 @@ class SuppliersPage extends StatefulWidget {
 }
 
 class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProviderStateMixin {
-  final TextEditingController _searchController = TextEditingController();
   late AnimationController _animationController;
+  late TextEditingController _searchController;
 
   List<Map<String, String>> suppliers = [
     {'name': 'ABC Supplies', 'alias': 'ABC'},
@@ -28,6 +28,7 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
       vsync: this,
       duration: Duration(milliseconds: 1000),
     );
+    _searchController = TextEditingController();
     filteredSuppliers = suppliers;
     _animationController.forward();
   }
@@ -35,20 +36,22 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
   @override
   void dispose() {
     _animationController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  void _filterSuppliers(String query) {
+  void filterSuppliers(String query) {
     final results = suppliers.where((supplier) {
-      return supplier['name']!.toLowerCase().contains(query.toLowerCase()) ||
-          supplier['alias']!.toLowerCase().contains(query.toLowerCase());
+      final nameLower = supplier['name']!.toLowerCase();
+      final aliasLower = supplier['alias']!.toLowerCase();
+      final searchLower = query.toLowerCase();
+
+      return nameLower.contains(searchLower) || aliasLower.contains(searchLower);
     }).toList();
 
     setState(() {
       filteredSuppliers = results;
     });
-    _animationController.reset();
-    _animationController.forward();
   }
 
   @override
@@ -57,13 +60,23 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
       appBar: AppBar(
         title: Text('Suppliers'),
         centerTitle: true,
-        
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-           
+            // Search Bar
+            TextField(
+              controller: _searchController,
+              onChanged: filterSuppliers,
+              decoration: InputDecoration(
+                labelText: 'Search Suppliers',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
             SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
@@ -71,69 +84,61 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
                 itemBuilder: (context, index) {
                   final supplier = filteredSuppliers[index];
                   final animation = Tween<Offset>(
-  begin: Offset(1, 0),
-  end: Offset.zero,
-).animate(CurvedAnimation(
-  parent: _animationController,
-  curve: Interval(
-    index * (1 / filteredSuppliers.length),
-    (index + 1) * (1 / filteredSuppliers.length),
-    curve: Curves.easeOutCubic,
-  ),
-));
-
+                    begin: Offset(1, 0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: _animationController,
+                    curve: Interval(
+                      index * (1 / filteredSuppliers.length),
+                      (index + 1) * (1 / filteredSuppliers.length),
+                      curve: Curves.easeOutCubic,
+                    ),
+                  ));
 
                   return SlideTransition(
                     position: animation,
                     child: Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-     
-      shadowColor: Colors.indigo.withOpacity(0.2),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Supplier Icon or Avatar
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.indigo.withOpacity(0.1),
-              child: Icon(Icons.store, color: Colors.indigo, size: 28),
-            ),
-            const SizedBox(width: 20),
-            // Supplier Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    supplier['name'] ?? '',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      shadowColor: Colors.indigo.withOpacity(0.2),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              radius: 30,
+                              backgroundColor: Colors.indigo.withOpacity(0.1),
+                              child: Icon(Icons.store, color: Colors.indigo, size: 28),
+                            ),
+                            const SizedBox(width: 20),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    supplier['name'] ?? '',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Alias: ${supplier['alias'] ?? ''}',
+                                    style: TextStyle(
+                                      color: Colors.grey[700],
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Alias: ${supplier['alias'] ?? ''}',
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                 
-                ],
-              ),
-            ),
-            // Forward Icon
-           
-          ],
-        ),
-      ),
-    ),
                   );
                 },
               ),
@@ -141,7 +146,6 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
           ],
         ),
       ),
-      
     );
   }
 }
