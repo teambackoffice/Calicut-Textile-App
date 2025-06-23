@@ -121,7 +121,7 @@ class _HomepageState extends State<Homepage> {
               ),
             ),
             const SizedBox(height: 24),
-            Text(" PO & Sup",style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold),),
+            Text(" Supplier Orders and Suppliers",style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold),),
              const SizedBox(height: 24),
             
             
@@ -134,7 +134,7 @@ class _HomepageState extends State<Homepage> {
                 children: [
                   _buildMenuItem(
                     icon: Icons.receipt_long,
-                    title: 'Purchase Order ',
+                    title: 'Supplier Orders ',
                     onTap: () {
                       Navigator.push(
   context,

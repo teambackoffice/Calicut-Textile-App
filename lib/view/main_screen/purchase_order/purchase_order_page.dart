@@ -37,7 +37,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
         elevation: 0,
         backgroundColor: Colors.white,
         title: const Text(
-          'Purchase Orders',
+          'Supplier Orders',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
@@ -106,7 +106,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'PO-${2024000 + index + 1}',
+                                            'SO-${2024000 + index + 1}',
                                             style: const TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.bold,
@@ -241,7 +241,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
         elevation: 8,
         icon: const Icon(Icons.add),
         label: const Text(
-          'New PO',
+          'Create Supplier Order',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
