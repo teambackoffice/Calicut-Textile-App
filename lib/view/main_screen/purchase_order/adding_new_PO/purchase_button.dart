@@ -23,6 +23,7 @@ class SavePurchaseOrderButton extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   title: const Text('Success'),
                   content: const Text('Purchase order saved successfully!'),
+                  
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
@@ -31,6 +32,13 @@ class SavePurchaseOrderButton extends StatelessWidget {
                   ],
                 ),
               );
+             for (var item in items) {
+            print('Item: $item');
+          }
+
+          // OR simply:
+          print('All Items: $items');
+        
             },
             icon: const Icon(Icons.save),
             label: const Text('SAVE PURCHASE ORDER'),

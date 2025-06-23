@@ -90,7 +90,7 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   double get totalDiscount => 0.0;
   double get totalVAT => totalAmount * 0.15;
   double get additionalDiscount => 0.0;
-  double get grandTotal => totalAmount - totalDiscount + totalVAT - additionalDiscount;
+  double get grandTotal => totalAmount;
 
   @override
   void dispose() {
@@ -456,7 +456,6 @@ void _openSupplierDialog() async {
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(Icons.numbers, size: 16, color: Colors.grey.shade600),
                                       const SizedBox(width: 4),
                                       Text(
                                         'Qty: ${item.quantity.toString()}',
@@ -471,10 +470,10 @@ void _openSupplierDialog() async {
                                   const SizedBox(width: 20),
                                   Row(
                                     children: [
-                                      Icon(Icons.attach_money, size: 16, color: Colors.grey.shade600),
+                                      
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Rate: \$${item.rate.toStringAsFixed(2)}',
+                                        'Rate: ${item.rate.toStringAsFixed(2)}',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.grey.shade700,
@@ -489,7 +488,7 @@ void _openSupplierDialog() async {
                                       Icon(Icons.calculate, size: 16, color: Colors.grey.shade600),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Total: \$${item.total.toStringAsFixed(2)}',
+                                        'Total: ${item.total.toStringAsFixed(2)}',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.grey.shade700,
