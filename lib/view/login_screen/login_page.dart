@@ -1,5 +1,7 @@
+import 'package:calicut_textile_app/controller/login_controller.dart';
 import 'package:calicut_textile_app/view/main_screen/homepage.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,39 +18,53 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   @override
+  
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
+  
 
   void _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+  final loginController = Provider.of<LoginController>(context, listen: false);
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+  if (_formKey.currentState!.validate()) {
+    setState(() {
+      _isLoading = true;
+    });
 
-      setState(() {
-        _isLoading = false;
-      });
+    bool isLoggedIn = await loginController.login(
+      _usernameController.text.trim(),
+      _passwordController.text.trim(),
+    );
 
-      // Handle login logic here
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Login successful! '),
+          content: Text('Login successful!'),
           backgroundColor: Colors.green,
         ),
       );
-     Navigator.push(
-  context,
-  MaterialPageRoute(builder: (context) => Homepage()),
-);
 
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => Homepage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loginController.errorMessage ?? 'Login failed!'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

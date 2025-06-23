@@ -1,24 +1,29 @@
+// main.dart
+import 'package:calicut_textile_app/controller/login_controller.dart';
+import 'package:calicut_textile_app/view/login_screen/login_page.dart';
 import 'package:calicut_textile_app/view/main_screen/homepage.dart';
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LoginController()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      
-      
-      home: const Homepage(),
+      home: Homepage(),
     );
   }
 }
-
