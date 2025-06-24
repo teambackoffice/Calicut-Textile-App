@@ -8,8 +8,9 @@ class Item {
   final String code;
   final String name;
   final String? color;
+  final String selectedUOM;
   
-  Item({required this.code, required this.name, this.color});
+  Item({required this.code, required this.name, this.color,this.selectedUOM = ''});
 }
 
 // Sample data for testing
@@ -79,7 +80,7 @@ class SampleItems {
 }
 
 class DialogBoxItems extends StatefulWidget {
-  const DialogBoxItems({
+  DialogBoxItems({
     super.key,
     required this.formKey,
     required this.itemCodeController,
@@ -88,6 +89,10 @@ class DialogBoxItems extends StatefulWidget {
     required this.rateController,
     required this.colorController,
     this.existingItems,
+    required this.UomOptions,
+    required this.onItemCreated,
+    this.onUOMSelected,
+    this.onImageCountChanged, // Add this callback
   });
 
   final GlobalKey<FormState> formKey;
@@ -97,21 +102,23 @@ class DialogBoxItems extends StatefulWidget {
   final TextEditingController rateController;
   final TextEditingController colorController;
   final List<Item>? existingItems;
+  final List<String> UomOptions;
+  final void Function(Item) onItemCreated;
+  final void Function(String)? onUOMSelected;
+  final void Function(int)? onImageCountChanged;  // New callback for image count
 
   @override
   State<DialogBoxItems> createState() => _DialogBoxItemsState();
 }
 
 class _DialogBoxItemsState extends State<DialogBoxItems> {
+  String? _selectedUOM; 
   final TextEditingController _searchController = TextEditingController();
   List<Item> _filteredItems = [];
   Item? _selectedItem;
   bool _isCreatingNew = false;
-  String _selectedUOM = 'PCS';
   double _totalAmount = 0.0;
   
-  final List<String> _uomOptions = ['PCS', 'KG', 'L', 'M', 'SQM', 'CUM'];
-
   List<File> _selectedImages = [];
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -119,6 +126,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   void initState() {
     super.initState();
     _filteredItems = widget.existingItems ?? SampleItems.getSampleItems();
+    _selectedUOM = widget.UomOptions.isNotEmpty ? widget.UomOptions[0] : null;
     
     // Add listeners to calculate total amount
     widget.quantityController.addListener(_calculateTotal);
@@ -148,7 +156,13 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
     });
   }
 
-   
+  // Update image count whenever images are added or removed
+  void _updateImageCount() {
+    if (widget.onImageCountChanged != null) {
+      widget.onImageCountChanged!(_selectedImages.length);
+    }
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     if (_selectedImages.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -158,7 +172,10 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
+        
       );
+      
+      
       return;
     }
 
@@ -171,9 +188,12 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
       );
 
       if (pickedFile != null) {
-        setState(() {
-          _selectedImages.add(File(pickedFile.path));
-        });
+       setState(() {
+  _selectedImages.add(File(pickedFile.path));
+});
+_updateImageCount();
+        
+        _updateImageCount(); // Update image count when image is added
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -194,13 +214,19 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
+      
     }
+  
   }
+  
 
   void _removeImage(int index) {
-    setState(() {
-      _selectedImages.removeAt(index);
-    });
+   setState(() {
+  _selectedImages.removeAt(index);
+});
+_updateImageCount(); 
+    
+    _updateImageCount(); // Update image count when image is removed
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -211,8 +237,10 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
+
   }
-   void _showImageSourceDialog() {
+
+  void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -322,14 +350,13 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
     );
   }
 
-  // Clear all images (useful when resetting form)
   void _clearAllImages() {
     setState(() {
       _selectedImages.clear();
     });
+    _updateImageCount(); // Update image count when all images are cleared
   }
 
-  // Get image paths for saving
   List<String> getImagePaths() {
     return _selectedImages.map((image) => image.path).toList();
   }
@@ -358,7 +385,9 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
       widget.quantityController.clear();
       widget.rateController.clear();
       _totalAmount = 0.0;
+      _selectedImages.clear(); // Clear images when creating new item
     });
+    _updateImageCount(); // Update image count when creating new item
   }
 
   @override
@@ -432,7 +461,6 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                       ),
                     ),
                   ] else ...[
-                    // No results found
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -471,7 +499,6 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
 
               // Selected Item or Create New Form
               if (_selectedItem != null || _isCreatingNew) ...[
-                // Header
                 Row(
                   children: [
                     Expanded(
@@ -492,31 +519,28 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                           _searchController.clear();
                           _filteredItems = widget.existingItems ?? SampleItems.getSampleItems();
                           _totalAmount = 0.0;
+                          _selectedImages.clear();
                         });
+                        _updateImageCount(); // Update image count when resetting
                       },
                       icon: Icon(Icons.close),
                     ),
                   ],
                 ),
 
-                // Item Code & Name (only if creating new)
                 if (_isCreatingNew) ...[
                   Row(
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            
-                          
-                          ],
+                          children: [],
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
 
-                  // Item Name
                   Text(
                     'Item Name',
                     style: TextStyle(
@@ -639,8 +663,11 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                               setState(() {
                                 _selectedUOM = value!;
                               });
+                              if (widget.onUOMSelected != null) {
+                                widget.onUOMSelected!(value!);
+                              }
                             },
-                            items: _uomOptions.map((uom) {
+                            items: widget.UomOptions.map((uom) {
                               return DropdownMenuItem(
                                 value: uom,
                                 child: Text(uom),
@@ -664,7 +691,6 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
 
                 const SizedBox(height: 24),
 
-                // Color (only if creating new)
                 if (_isCreatingNew) ...[
                   Text(
                     'Color (Optional)',
@@ -689,134 +715,96 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                     ),
                   ),
 
-                  SizedBox(height: 24,),
-                   Text(
-                  'Item Images',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                  SizedBox(height: 24),
+                  Text(
+                    'Item Images (${_selectedImages.length}/3)', // Show current count
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-                 // Selected Images Display
-                if (_selectedImages.isNotEmpty) ...[
-                  Container(
-                    height: 120,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _selectedImages.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          margin: EdgeInsets.only(right: 12),
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  _selectedImages[index],
-                                  width: 100,
-                                  height: 100,
-                                  fit: BoxFit.cover,
+                  if (_selectedImages.isNotEmpty) ...[
+                    Container(
+                      height: 120,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _selectedImages.length,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            margin: EdgeInsets.only(right: 12),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(
+                                    _selectedImages[index],
+                                    width: 100,
+                                    height: 100,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
-                              ),
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: GestureDetector(
-                                  onTap: () => _removeImage(index),
-                                  child: Container(
-                                    padding: EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withOpacity(0.8),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 16,
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: GestureDetector(
+                                    onTap: () => _removeImage(index),
+                                    child: Container(
+                                      padding: EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withOpacity(0.8),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              // Image number indicator
-                              
-                              
-                            ],
-                          ),
-                        );
-                      },
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  Container(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _selectedImages.length < 3 ? _showImageSourceDialog : null,
+                      icon: Icon(
+                        _selectedImages.isEmpty ? Icons.add_a_photo : Icons.add_photo_alternate,
+                        size: 20,
+                      ),
+                      label: Text(
+                        _selectedImages.isEmpty 
+                          ? 'Add Images (Optional)' 
+                          : 'Add More Images (${_selectedImages.length}/3)',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        side: BorderSide(
+                          color: _selectedImages.length < 3 ? Colors.blue : Colors.grey[300]!,
+                          width: 1.5,
+                        ),
+                        foregroundColor: _selectedImages.length < 3 ? Colors.blue : Colors.grey[500],
+                        backgroundColor: _selectedImages.length < 3 ? Colors.blue.withOpacity(0.05) : Colors.grey[50],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Add Image Button
-                Container(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _selectedImages.length < 3 ? _showImageSourceDialog : null,
-                    icon: Icon(
-                      _selectedImages.isEmpty ? Icons.add_a_photo : Icons.add_photo_alternate,
-                      size: 20,
-                    ),
-                    label: Text(
-                      _selectedImages.isEmpty 
-                        ? 'Add Images (Optional)' 
-                        : 'Add More Images (${_selectedImages.length}/3)',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      side: BorderSide(
-                        color: _selectedImages.length < 3 ? Colors.blue : Colors.grey[300]!,
-                        width: 1.5,
-                      ),
-                      foregroundColor: _selectedImages.length < 3 ? Colors.blue : Colors.grey[500],
-                      backgroundColor: _selectedImages.length < 3 ? Colors.blue.withOpacity(0.05) : Colors.grey[50],
-                    ),
-                  ),
-                ),
-
-                // Image Guidelines
-                const SizedBox(height: 12),
-                // Container(
-                //   padding: EdgeInsets.all(12),
-                //   decoration: BoxDecoration(
-                //     color: Colors.blue.withOpacity(0.05),
-                //     borderRadius: BorderRadius.circular(12),
-                //     border: Border.all(color: Colors.blue.withOpacity(0.2)),
-                //   ),
-                //   child: Row(
-                //     crossAxisAlignment: CrossAxisAlignment.start,
-                //     children: [
-                //       Icon(
-                //         Icons.info_outline,
-                //         color: Colors.blue[600],
-                //         size: 16,
-                //       ),
-                //       SizedBox(width: 8),
-                //       Expanded(
-                //         child: Text(
-                //           '• You can add up to 3 images\n• Images will be compressed for optimal storage\n• Supported formats: JPG, PNG\n• Tap the camera/gallery button to add images',
-                //           style: TextStyle(
-                //             fontSize: 12,
-                //             color: Colors.blue[700],
-                //             height: 1.4,
-                //           ),
-                //         ),
-                //       ),
-                //     ],
-                //   ),
-                // ),
-              ],
                 ],
               ],
-            
+            ],
           ),
         ),
       ),

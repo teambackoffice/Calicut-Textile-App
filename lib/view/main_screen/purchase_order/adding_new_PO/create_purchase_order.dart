@@ -16,6 +16,8 @@ class PurchaseOrderItem {
   int quantity;
   double rate;
   String color;
+  String uom;
+  int imageCount; // Added image count field
   
   PurchaseOrderItem({
     required this.itemCode,
@@ -23,6 +25,8 @@ class PurchaseOrderItem {
     required this.quantity,
     required this.rate,
     required this.color,
+    required this.uom,
+    this.imageCount = 0, // Default to 0 images
   });
   
   double get total => quantity * rate;
@@ -37,23 +41,26 @@ class CreatePurchaseOrder extends StatefulWidget {
 
 class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   String selectedSupplier = 'Select Suppliers';
+  String _selectedUOM = '';
+  int _selectedImageCount = 0; // Track image count from dialog
+  final List<String> _uomOptions = ['PCS', 'KG', 'L', 'M', 'SQM', 'CUM'];
 
   final List<String> suppliers = [
     'Global Supplies Ltd.',
-  'FreshMart Distributors',
-  'BlueWave Traders',
-  'Sunrise Industries',
-  'GreenLeaf Suppliers',
-  'Ace Hardware Co.',
-  'Silverline Wholesalers',
-  'Urban Essentials',
-  'MegaMart Partners',
-  'PrimeSource Pvt. Ltd.',
-  'FastTrack Logistics',
-  'BrightStar Solutions',
-  'Infinity Supplies',
-  'Royal Traders Group',
-  'Galaxy Distributors',
+    'FreshMart Distributors',
+    'BlueWave Traders',
+    'Sunrise Industries',
+    'GreenLeaf Suppliers',
+    'Ace Hardware Co.',
+    'Silverline Wholesalers',
+    'Urban Essentials',
+    'MegaMart Partners',
+    'PrimeSource Pvt. Ltd.',
+    'FastTrack Logistics',
+    'BrightStar Solutions',
+    'Infinity Supplies',
+    'Royal Traders Group',
+    'Galaxy Distributors',
   ];
   final TextEditingController _controller = TextEditingController();
   DateTime? _selectedDate;
@@ -69,11 +76,10 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
-        _controller.text = DateFormat('dd-MM-yyyy').format(picked); // Customize the format if needed
+        _controller.text = DateFormat('dd-MM-yyyy').format(picked);
       });
     }
   }
-
 
   final List<PurchaseOrderItem> items = [];
   final _formKey = GlobalKey<FormState>();
@@ -91,6 +97,18 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   double get totalVAT => totalAmount * 0.15;
   double get additionalDiscount => 0.0;
   double get grandTotal => totalAmount;
+
+  void _updateSelectedUOM(String selectedUOM) {
+    setState(() {
+      _selectedUOM = selectedUOM;
+    });
+  }
+
+  void _updateImageCount(int imageCount) {
+    setState(() {
+      _selectedImageCount = imageCount;
+    });
+  }
 
   @override
   void dispose() {
@@ -110,7 +128,9 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
           itemName: _itemNameController.text,
           quantity: int.parse(_quantityController.text),
           rate: double.parse(_rateController.text),
-          color: _colorController.text,
+          color: _colorController.text, 
+          uom: _selectedUOM,
+          imageCount: _selectedImageCount, // Save image count
         ));
       });
       
@@ -119,6 +139,8 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
       _quantityController.clear();
       _rateController.clear();
       _colorController.clear();
+      _selectedUOM = ''; // Reset UOM
+      _selectedImageCount = 0; // Reset image count
       
       Navigator.pop(context);
     }
@@ -131,113 +153,126 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   }
 
   void _showAddItemDialog() {
-  showGeneralDialog(
-    context: context,
-    barrierDismissible: true,
-    barrierLabel: 'Add Item Dialog',
-    barrierColor: Colors.black54,
-    transitionDuration: const Duration(milliseconds: 300),
-    pageBuilder: (context, animation, secondaryAnimation) {
-      return Container();
-    },
-    transitionBuilder: (context, animation, secondaryAnimation, child) {
-      return ScaleTransition(
-        scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-          CurvedAnimation(parent: animation, curve: Curves.elasticOut),
-        ),
-        child: FadeTransition(
-          opacity: animation,
-          child: Center(
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.95,
-              height: MediaQuery.of(context).size.height * 0.85,
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: Column(
-                  children: [
-                    // Header with blue gradient background
-                    DialogBoxHeader(),
-
-                    // Form content
-                    DialogBoxItems(formKey: _formKey, itemCodeController: _itemCodeController, itemNameController: _itemNameController, quantityController: _quantityController, rateController: _rateController, colorController: _colorController),
-
-                    // Action buttons
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(28),
-                          bottomRight: Radius.circular(28),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                         
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton.icon(
-                              onPressed: _addItem,
-                              icon: const Icon(Icons.add_rounded),
-                              label: const Text(
-                                'ADD ITEM',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                elevation: 2,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Add Item Dialog',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Container();
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.8, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: Curves.elasticOut),
+          ),
+          child: FadeTransition(
+            opacity: animation,
+            child: Center(
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.95,
+                height: MediaQuery.of(context).size.height * 0.85,
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
                   ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    children: [
+                      // Header with blue gradient background
+                      DialogBoxHeader(),
+
+                      // Form content
+                      DialogBoxItems(
+                        formKey: _formKey, 
+                        itemCodeController: _itemCodeController, 
+                        itemNameController: _itemNameController, 
+                        quantityController: _quantityController, 
+                        rateController: _rateController, 
+                        colorController: _colorController,
+                        UomOptions: _uomOptions,
+                        onUOMSelected: _updateSelectedUOM,
+                        onImageCountChanged: _updateImageCount, // Add image count callback
+                        onItemCreated: (item) {
+                          Navigator.of(context).pop(item);
+                        },
+                      ),
+
+                      // Action buttons
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(28),
+                            bottomRight: Radius.circular(28),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton.icon(
+                                onPressed: _addItem,
+                                icon: const Icon(Icons.add_rounded),
+                                label: const Text(
+                                  'ADD ITEM',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  elevation: 2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      );
-    },
-  );
-}
-void _openSupplierDialog() async {
-  final result = await showDialog<String>(
-    context: context,
-    barrierDismissible: true,
-    builder: (BuildContext context) {
-      return SupplierDialogBox(suppliers: suppliers);
-    },
-  );
-
-  if (result != null) {
-    setState(() {
-      selectedSupplier = result;
-    });
+        );
+      },
+    );
   }
-}
+
+  void _openSupplierDialog() async {
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return SupplierDialogBox(suppliers: suppliers);
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        selectedSupplier = result;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -251,7 +286,6 @@ void _openSupplierDialog() async {
           "Create Purchase Order",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-       
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -261,102 +295,95 @@ void _openSupplierDialog() async {
             children: [
               // Header Card
               PostingDate(),
-                  const SizedBox(height: 20),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Required By',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+              const SizedBox(height: 20),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Required By',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Required Date',
+                      labelStyle: const TextStyle(
+                        color: Colors.blueAccent,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 18, 
+                        horizontal: 20,
+                      ),
+                      suffixIcon: Container(
+                        margin: const EdgeInsets.only(right: 12),
+                        child: Icon(
+                          Icons.calendar_today,
+                          color: Colors.blue,
+                          size: 24,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        decoration: InputDecoration(
-        labelText: 'Required Date',
-        labelStyle: const TextStyle(
-          color: Colors.blueAccent,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-        
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 18, 
-          horizontal: 20,
-        ),
-       
-        suffixIcon: Container(
-          margin: const EdgeInsets.only(right: 12),
-          child: Icon(
-            Icons.calendar_today,
-            color: Colors.blue,
-            size: 24,
-          ),
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-        ),
-      ),
-      controller: _controller,
-      readOnly: true, // Make sure user can't type
-     
-      onTap: () => _selectDate(context),
-    ),
-                    
-
-                    ],
-                  ),
-                   const SizedBox(height: 20),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Suppliers',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
                       ),
-                       const SizedBox(height: 10),
-                      GestureDetector(
-  onTap: _openSupplierDialog,
-  child: Container(
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: AbsorbPointer(
-      child: SuppliersSelect(selectedSupplier: selectedSupplier),
-    ),
-  ),
-)
-                    ],
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+                      ),
+                    ),
+                    controller: _controller,
+                    readOnly: true,
+                    onTap: () => _selectDate(context),
                   ),
-
+                ],
+              ),
+              const SizedBox(height: 20),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Suppliers',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: _openSupplierDialog,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: AbsorbPointer(
+                        child: SuppliersSelect(selectedSupplier: selectedSupplier),
+                      ),
+                    ),
+                  )
+                ],
+              ),
 
               const SizedBox(height: 20),
-
 
               // Items Section
               Column(
@@ -444,14 +471,8 @@ void _openSupplierDialog() async {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              Text(
-                                'Code: ${item.itemCode}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
+                             
+                              // First row: Quantity, Rate, Total
                               Row(
                                 children: [
                                   Row(
@@ -460,8 +481,8 @@ void _openSupplierDialog() async {
                                       Text(
                                         'Qty: ${item.quantity.toString()}',
                                         style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey.shade700,
+                                          fontSize: 16,
+                                          color: Colors.black,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -470,39 +491,41 @@ void _openSupplierDialog() async {
                                   const SizedBox(width: 20),
                                   Row(
                                     children: [
-                                      
                                       const SizedBox(width: 4),
                                       Text(
                                         'Rate: ${item.rate.toStringAsFixed(2)}',
                                         style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey.shade700,
+                                          fontSize: 16,
+                                          color: Colors.black,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(width: 20),
+                                  const SizedBox(width: 25),
                                   Row(
                                     children: [
-                                      Icon(Icons.calculate, size: 16, color: Colors.grey.shade600),
                                       const SizedBox(width: 4),
                                       Text(
                                         'Total: ${item.total.toStringAsFixed(2)}',
                                         style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey.shade700,
-                                          fontWeight: FontWeight.w500,
+                                          fontSize: 16,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
-                              if (item.color.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
+                              
+                              // Second row: Color, UOM, Images (always show)
+                              const SizedBox(height: 8),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Color (only if not empty)
+                                  if (item.color.isNotEmpty) ...[
                                     Icon(Icons.color_lens, size: 16, color: Colors.grey.shade600),
                                     const SizedBox(width: 4),
                                     Text(
@@ -512,9 +535,35 @@ void _openSupplierDialog() async {
                                         color: Colors.grey.shade600,
                                       ),
                                     ),
+                                    const SizedBox(width: 20),
                                   ],
-                                ),
-                              ],
+                                  
+                                  // UOM (always show)
+                                  Icon(Icons.straighten, size: 16, color: Colors.grey.shade600),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "UOM: ${item.uom}", // Use item.uom instead of global _selectedUOM
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  
+                                  // Images (only if > 0)
+                                  if (item.imageCount > 0) ...[
+                                    const SizedBox(width: 20),
+                                    Icon(Icons.photo_library, size: 16, color: Colors.grey.shade600),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      "${item.imageCount} image${item.imageCount > 1 ? 's' : ''}",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ],
                           ),
                         ),
@@ -537,4 +586,3 @@ void _openSupplierDialog() async {
     );
   }
 }
-
