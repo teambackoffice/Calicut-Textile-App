@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:calicut_textile_app/controller/product_controller.dart';
 import 'package:calicut_textile_app/modal/product_list_model.dart';
+import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/create_new_item.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -61,7 +62,8 @@ class DialogBoxItems extends StatefulWidget {
     required this.UomOptions,
     required this.onItemCreated,
     this.onUOMSelected,
-    this.onImageCountChanged, // Add this callback
+    this.onImageCountChanged, 
+    this.onImagesSelected,// Add this callback
   });
 
   final GlobalKey<FormState> formKey;
@@ -74,8 +76,8 @@ class DialogBoxItems extends StatefulWidget {
   final List<String> UomOptions;
   final void Function(Item) onItemCreated;
   final void Function(String)? onUOMSelected;
-  final void Function(int)? onImageCountChanged;  // New callback for image count
-
+  final void Function(int)? onImageCountChanged; 
+final void Function(List<String>)? onImagesSelected;
   @override
   State<DialogBoxItems> createState() => _DialogBoxItemsState();
 }
@@ -94,6 +96,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   
   
   List<File> _selectedImages = [];
+   List<String> _selectedImagePaths = [];
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -106,6 +109,34 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
     widget.quantityController.addListener(_calculateTotal);
     widget.rateController.addListener(_calculateTotal);
      _loadProducts();
+  }
+
+   void _addSearchItemDirectly(Item item) {
+    
+    
+    // Ensure the item has all required data
+    final itemToSend = Item(
+      code: item.code,
+      name: item.name,
+      color: item.color ?? '',
+      selectedUOM: item.selectedUOM,
+      rate: item.rate ?? 0.0,
+      quantity: item.quantity ?? 1.0, // Default to 1 if not specified
+      image1: item.image1,
+      image2: item.image2,
+      image3: item.image3,
+    );
+    
+    
+    // Send data to parent page via callback
+    if (widget.onItemCreated != null) {
+      widget.onItemCreated(itemToSend);
+    } else {
+      return;
+    }
+    
+    // Close the dialog (returns to CreatePurchaseOrder)
+    Navigator.pop(context);
   }
 
   Future<void> _loadProducts() async {
@@ -171,196 +202,145 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   });
 }
   // Update image count whenever images are added or removed
+  
+
+   Future<void> _pickImages() async {
+    try {
+      final List<XFile> pickedFiles = await _imagePicker.pickMultiImage(
+        maxHeight: 1080,
+        maxWidth: 1080,
+        imageQuality: 85,
+      );
+
+      if (pickedFiles.isNotEmpty) {
+        // Limit to 3 images maximum
+        final int maxImages = 3;
+        final int currentCount = _selectedImages.length;
+        final int remainingSlots = maxImages - currentCount;
+        
+        if (remainingSlots > 0) {
+          final List<XFile> filesToAdd = pickedFiles.take(remainingSlots).toList();
+          
+          setState(() {
+            for (XFile file in filesToAdd) {
+              _selectedImages.add(File(file.path));
+              _selectedImagePaths.add(file.path);
+            }
+          });
+          
+          _updateImageCount();
+          _sendImagePathsToParent(); // Send paths to parent
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Maximum 3 images allowed'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error picking images: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+      _selectedImagePaths.removeAt(index);
+    });
+    _updateImageCount();
+    _sendImagePathsToParent();
+  }
+
+  // Update image count whenever images are added or removed
   void _updateImageCount() {
     if (widget.onImageCountChanged != null) {
       widget.onImageCountChanged!(_selectedImages.length);
     }
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    if (_selectedImages.length >= 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Maximum 3 images allowed'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-        
-      );
-      
-      
-      return;
+  // Send image paths to parent widget
+  void _sendImagePathsToParent() {
+    if (widget.onImagesSelected != null) {
+      widget.onImagesSelected!(_selectedImagePaths);
     }
-
-    try {
-      final XFile? pickedFile = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-
-      if (pickedFile != null) {
-       setState(() {
-  _selectedImages.add(File(pickedFile.path));
-});
-_updateImageCount();
-        
-        _updateImageCount(); // Update image count when image is added
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Image added successfully!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking image: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-      
-    }
-  
-  }
-  
-
-  void _removeImage(int index) {
-   setState(() {
-  _selectedImages.removeAt(index);
-});
-_updateImageCount(); 
-    
-    _updateImageCount(); // Update image count when image is removed
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Image removed'),
-        backgroundColor: Colors.grey[600],
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 1),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-
   }
 
-  void _showImageSourceDialog() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return Container(
-          margin: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                margin: EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+  Widget _buildImageSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Product Images',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
-              Padding(
-                padding: EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Text(
-                      'Select Image Source',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
+            ),
+            TextButton.icon(
+              onPressed: _selectedImages.length < 3 ? _pickImages : null,
+              icon: const Icon(Icons.add_photo_alternate),
+              label: Text('Add Images (${_selectedImages.length}/3)'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_selectedImages.isNotEmpty)
+          Container(
+            height: 100,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _selectedImages.length,
+              itemBuilder: (context, index) {
+                return Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          _selectedImages[index],
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.pop(context);
-                              _pickImage(ImageSource.camera);
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(Icons.camera_alt, color: Colors.blue, size: 32),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Camera',
-                                    style: TextStyle(
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () => _removeImage(index),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 20,
                             ),
                           ),
                         ),
-                        SizedBox(width: 16),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.pop(context);
-                              _pickImage(ImageSource.gallery);
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.green.withOpacity(0.3)),
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(Icons.photo_library, color: Colors.green, size: 32),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Gallery',
-                                    style: TextStyle(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16),
-                  ],
-                ),
-              ),
-            ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
-        );
-      },
+        const SizedBox(height: 16),
+      ],
     );
   }
 
@@ -403,6 +383,78 @@ _updateImageCount();
     });
     _updateImageCount(); // Update image count when creating new item
   }
+   Widget _buildSearchResults() {
+    return Container(
+      constraints: BoxConstraints(maxHeight: 300),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        itemCount: _filteredItems.length,
+        itemBuilder: (context, index) {
+          final item = _filteredItems[index];
+          return Container(
+            decoration: BoxDecoration(
+              border: index > 0 
+                  ? Border(top: BorderSide(color: Colors.grey[200]!))
+                  : null,
+            ),
+            child: ListTile(
+              title: Text(
+                item.name,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 4),
+                  Text('Code: ${item.code}'),
+                  if (item.color != null && item.color!.isNotEmpty)
+                    Text('Color: ${item.color}'),
+                  Row(
+                    children: [
+                      if (item.rate != null)
+                        Text('Rate: ₹${item.rate!.toStringAsFixed(2)}'),
+                      if (item.rate != null && item.quantity != null)
+                        Text(' | '),
+                      if (item.quantity != null)
+                        Text('Qty: ${item.quantity!.toStringAsFixed(0)}'),
+                      Text(' | UOM: ${item.selectedUOM}'),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                ],
+              ),
+              trailing: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Add',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              onTap: () {
+                _addSearchItemDirectly(item); // 🎯 THIS IS THE KEY METHOD!
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -446,7 +498,7 @@ _updateImageCount();
                 if (_searchController.text.isNotEmpty) ...[
                   if (_filteredItems.isNotEmpty) ...[
                     Text(
-                      'Search Results',
+                      'Search Results (Click to add)',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -454,26 +506,7 @@ _updateImageCount();
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      constraints: BoxConstraints(maxHeight: 200),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: _filteredItems.length,
-                        itemBuilder: (context, index) {
-                          final item = _filteredItems[index];
-                          return ListTile(
-                            title: Text(item.name),
-                            subtitle: Text('Code: ${item.code}'),
-                            trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                            onTap: () => _selectItem(item),
-                          );
-                        },
-                      ),
-                    ),
+                    _buildSearchResults(),
                   ] else ...[
                     Container(
                       width: double.infinity,
@@ -791,7 +824,7 @@ _updateImageCount();
                   Container(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: _selectedImages.length < 3 ? _showImageSourceDialog : null,
+                      onPressed: _selectedImages.length < 3 ? _pickImages : null,
                       icon: Icon(
                         _selectedImages.isEmpty ? Icons.add_a_photo : Icons.add_photo_alternate,
                         size: 20,

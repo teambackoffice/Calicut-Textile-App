@@ -1,3 +1,5 @@
+import 'package:calicut_textile_app/modal/add_product_modal.dart';
+import 'package:calicut_textile_app/service/add_product_service.dart';
 import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/dialog_box_header.dart';
 import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/dialog_box_items.dart';
 import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/empty_items_container.dart';
@@ -8,6 +10,7 @@ import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_P
 import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/select_suppliers.dart';
 import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/supplier_dialog_box.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 
 class PurchaseOrderItem {
@@ -45,6 +48,20 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   int _selectedImageCount = 0; // Track image count from dialog
   final List<String> _uomOptions = ['PCS', 'KG', 'L', 'M', 'SQM', 'CUM'];
 
+  
+    List<String> _selectedImagePaths = [];
+
+      void _handleImagesSelected(List<String> imagePaths) {
+    for (int i = 0; i < imagePaths.length; i++) {
+    }
+    
+    setState(() {
+      _selectedImagePaths = imagePaths;
+    });
+    
+  }
+
+
   final List<String> suppliers = [
     'Global Supplies Ltd.',
     'FreshMart Distributors',
@@ -72,6 +89,7 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
+
 
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -120,31 +138,131 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     super.dispose();
   }
 
-  void _addItem() {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        items.add(PurchaseOrderItem(
-          itemCode: _itemCodeController.text,
-          itemName: _itemNameController.text,
-          quantity: int.parse(_quantityController.text),
-          rate: double.parse(_rateController.text),
-          color: _colorController.text, 
-          uom: _selectedUOM,
-          imageCount: _selectedImageCount, // Save image count
-        ));
-      });
+  // Add these imports at the top of your file
+void _handleItemCreated(Item item) {
+   
+    
+    setState(() {
+      items.add(PurchaseOrderItem(
+        itemCode: item.code,
+        itemName: item.name,
+        quantity: item.quantity?.toInt() ?? 1,
+        rate: item.rate ?? 0.0,
+        color: item.color ?? '',
+        uom: item.selectedUOM,
+        imageCount: 0, // You can update this based on images if needed
+      ));
+    });
+    
+    
+    // Show success message on the main page
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${item.name} added to purchase order',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+// Modified _addItem function
+void _addItem() async {
+     final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
+
+  if (_formKey.currentState!.validate()) {
+    // Show loading indicator
+   
+
+    try {
+      // Create Product object for API call
+      final product = Product(
+        productName: _itemNameController.text,
+        qty: _quantityController.text,
+        rate: _rateController.text,
+        amount: (int.parse(_quantityController.text) * double.parse(_rateController.text)).toString(),
+        color: _colorController.text,
+        uom: _selectedUOM,
+        imagePaths: _selectedImagePaths, api_key: apiKey, // Add this list to store selected image paths
+      );
+     
+      // Call the API service
+      final success = await ProductService.createProduct(
+        product: product,
+        context: context,
+      );
+
+      if (success == true) {
+        // API call successful - add to local list
+        setState(() {
+          items.add(PurchaseOrderItem(
+            itemCode: _itemCodeController.text,
+            itemName: _itemNameController.text,
+            quantity: int.parse(_quantityController.text),
+            rate: double.parse(_rateController.text),
+            color: _colorController.text,
+            uom: _selectedUOM,
+            imageCount: _selectedImageCount,
+          ));
+        });
+
+        // Clear form fields
+        _clearForm();
+        
+        // Close the dialog/page
+        Navigator.pop(context);
+        
+        // Show success message (already handled in service)
+        
+      } else if (success == null) {
+        // Specific error occurred (handled in service with snackbar)
+        // Keep the form open for user to retry
+      } else {
+        // General failure
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to create product. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Handle any unexpected errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      // Hide loading indicator
       
-      _itemCodeController.clear();
-      _itemNameController.clear();
-      _quantityController.clear();
-      _rateController.clear();
-      _colorController.clear();
-      _selectedUOM = ''; // Reset UOM
-      _selectedImageCount = 0; // Reset image count
-      
-      Navigator.pop(context);
     }
   }
+}
+
+void _clearForm() {
+  _itemCodeController.clear();
+  _itemNameController.clear();
+  _quantityController.clear();
+  _rateController.clear();
+  _colorController.clear();
+  _selectedUOM = '';
+  _selectedImageCount = 0;
+  // _selectedImagePaths.clear(); // Clear image paths
+}
 
   void _removeItem(int index) {
     setState(() {
@@ -202,10 +320,10 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
                         colorController: _colorController,
                         UomOptions: _uomOptions,
                         onUOMSelected: _updateSelectedUOM,
+                        
                         onImageCountChanged: _updateImageCount, // Add image count callback
-                        onItemCreated: (item) {
-                          Navigator.of(context).pop(item);
-                        },
+                        onItemCreated: _handleItemCreated,
+                        onImagesSelected: _handleImagesSelected,
                       ),
 
                       // Action buttons
