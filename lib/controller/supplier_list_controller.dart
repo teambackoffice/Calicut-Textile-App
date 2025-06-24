@@ -12,6 +12,9 @@ class SuppliersController extends ChangeNotifier {
   bool isLoading = false;
   bool hasMore = true;
 
+
+  
+
   Future<void> loadSuppliers({bool isInitialLoad = false}) async {
     if (isLoading || !hasMore) return;
 
