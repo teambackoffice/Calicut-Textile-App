@@ -2,6 +2,7 @@ import 'package:calicut_textile_app/controller/login_controller.dart';
 import 'package:calicut_textile_app/view/main_screen/homepage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,6 +45,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if (isLoggedIn) {
+      // ✅ Save login status
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Login successful!'),
@@ -51,7 +56,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      Navigator.push(
+      // ✅ Navigate and replace to prevent back navigation to login
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => Homepage()),
       );
@@ -65,6 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 }
+
 
   @override
   Widget build(BuildContext context) {
