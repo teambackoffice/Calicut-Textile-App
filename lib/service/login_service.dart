@@ -19,9 +19,13 @@ class LoginService {
        
         final responseData = jsonDecode(response.body);
         final fullName = responseData['full_name'];
+        final api_key = responseData['message']['api_key'];
+
+        
           
           // Store full_name in secure storage
           await _secureStorage.write(key: 'full_name', value: fullName);
+          await _secureStorage.write(key: 'api_key', value: api_key);
           
         // Assuming your API returns { "message": "Logged in Successfully" }
         // You can customize this condition based on your API response structure
@@ -38,6 +42,9 @@ class LoginService {
   }
    Future<String?> getFullName() async {
     return await _secureStorage.read(key: 'full_name');
+    }
+  Future<String?> getApiKey() async {
+    return await _secureStorage.read(key: 'api_key');
   }
 
   // Optional: Method to clear storage on logout

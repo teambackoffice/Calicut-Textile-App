@@ -1,4 +1,5 @@
 import 'package:calicut_textile_app/controller/login_controller.dart';
+import 'package:calicut_textile_app/controller/product_controller.dart';
 import 'package:calicut_textile_app/controller/supplier_list_controller.dart';
 import 'package:calicut_textile_app/view/login_screen/login_page.dart';
 import 'package:calicut_textile_app/view/main_screen/homepage.dart';
@@ -12,6 +13,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => LoginController()),
         ChangeNotifierProvider(create: (_) => SuppliersController()),
+        ChangeNotifierProvider(create: (_) => ProductListController()),
       ],
       child: MyApp(),
     ),

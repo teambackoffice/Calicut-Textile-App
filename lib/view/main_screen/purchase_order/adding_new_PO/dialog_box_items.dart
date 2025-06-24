@@ -1,7 +1,10 @@
 import 'dart:io';
 
+import 'package:calicut_textile_app/controller/product_controller.dart';
+import 'package:calicut_textile_app/modal/product_list_model.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 
 // Model class for Item
 class Item {
@@ -9,75 +12,41 @@ class Item {
   final String name;
   final String? color;
   final String selectedUOM;
+  final double? rate;
+  final double? quantity;
+  final String? image1;
+  final String? image2;
+  final String? image3;
   
-  Item({required this.code, required this.name, this.color,this.selectedUOM = ''});
+  Item({
+    required this.code, 
+    required this.name, 
+    this.color,
+    this.selectedUOM = '',
+    this.rate,
+    this.quantity,
+    this.image1,
+    this.image2,
+    this.image3,
+  });
+
+  // Add this factory constructor
+  factory Item.fromDatum(Datum datum) {
+    return Item(
+      code: datum.name, // Using 'name' as code from API
+      name: datum.productName,
+      color: datum.color,
+      selectedUOM: datum.uom,
+      rate: datum.rate,
+      quantity: datum.quantity,
+      image1: datum.image1,
+      image2: datum.image2,
+      image3: datum.image3,
+    );
+  }
 }
 
 // Sample data for testing
-class SampleItems {
-  static List<Item> getSampleItems() {
-    return [
-      // Construction Materials
-      Item(code: 'CM001', name: 'Ceramic Tiles 12x12', color: 'White'),
-      Item(code: 'CM002', name: 'Ceramic Tiles 12x12', color: 'Beige'),
-      Item(code: 'CM003', name: 'Steel Rods 8mm', color: 'Silver'),
-      Item(code: 'CM004', name: 'Steel Rods 10mm', color: 'Silver'),
-      Item(code: 'CM005', name: 'Concrete Blocks', color: 'Grey'),
-      Item(code: 'CM006', name: 'Red Bricks', color: 'Red'),
-      Item(code: 'CM007', name: 'PVC Pipes 4 inch', color: 'White'),
-      Item(code: 'CM008', name: 'PVC Pipes 6 inch', color: 'White'),
-      Item(code: 'CM009', name: 'Cement Bags 50kg', color: 'Grey'),
-      Item(code: 'CM010', name: 'Sand (River Sand)', color: 'Brown'),
-      
-      // Office Supplies
-      Item(code: 'OS001', name: 'A4 Paper Sheets', color: 'White'),
-      Item(code: 'OS002', name: 'Blue Pens', color: 'Blue'),
-      Item(code: 'OS003', name: 'Black Pens', color: 'Black'),
-      Item(code: 'OS004', name: 'Pencils HB', color: 'Yellow'),
-      Item(code: 'OS005', name: 'Staplers', color: 'Black'),
-      Item(code: 'OS006', name: 'Paper Clips', color: 'Silver'),
-      Item(code: 'OS007', name: 'Folders A4', color: 'Blue'),
-      Item(code: 'OS008', name: 'Folders A4', color: 'Red'),
-      
-      // Electronics
-      Item(code: 'EL001', name: 'LED Bulbs 9W', color: 'White'),
-      Item(code: 'EL002', name: 'LED Bulbs 12W', color: 'White'),
-      Item(code: 'EL003', name: 'Extension Cords 5m', color: 'Black'),
-      Item(code: 'EL004', name: 'Power Sockets', color: 'White'),
-      Item(code: 'EL005', name: 'Switches 2-way', color: 'White'),
-      Item(code: 'EL006', name: 'Copper Wires 2.5mm', color: 'Copper'),
-      Item(code: 'EL007', name: 'Cable Ties', color: 'Black'),
-      
-      // Furniture
-      Item(code: 'FU001', name: 'Office Chairs', color: 'Black'),
-      Item(code: 'FU002', name: 'Office Desks', color: 'Brown'),
-      Item(code: 'FU003', name: 'Filing Cabinets', color: 'Grey'),
-      Item(code: 'FU004', name: 'Bookshelf 5-tier', color: 'White'),
-      Item(code: 'FU005', name: 'Conference Table', color: 'Brown'),
-      
-      // Plumbing
-      Item(code: 'PL001', name: 'Water Taps', color: 'Chrome'),
-      Item(code: 'PL002', name: 'Toilet Seats', color: 'White'),
-      Item(code: 'PL003', name: 'Shower Heads', color: 'Chrome'),
-      Item(code: 'PL004', name: 'Pipe Fittings T-joint', color: 'White'),
-      Item(code: 'PL005', name: 'Pipe Fittings Elbow', color: 'White'),
-      
-      // Tools
-      Item(code: 'TL001', name: 'Hammer 500g', color: 'Red'),
-      Item(code: 'TL002', name: 'Screwdrivers Set', color: 'Yellow'),
-      Item(code: 'TL003', name: 'Drill Bits Set', color: 'Silver'),
-      Item(code: 'TL004', name: 'Measuring Tape 5m', color: 'Yellow'),
-      Item(code: 'TL005', name: 'Spirit Level 60cm', color: 'Green'),
-      
-      // Paints & Chemicals
-      Item(code: 'PC001', name: 'Wall Paint White', color: 'White'),
-      Item(code: 'PC002', name: 'Wall Paint Blue', color: 'Blue'),
-      Item(code: 'PC003', name: 'Primer Coat', color: 'White'),
-      Item(code: 'PC004', name: 'Thinner', color: 'Clear'),
-      Item(code: 'PC005', name: 'Wood Stain', color: 'Brown'),
-    ];
-  }
-}
 
 class DialogBoxItems extends StatefulWidget {
   DialogBoxItems({
@@ -112,12 +81,17 @@ class DialogBoxItems extends StatefulWidget {
 }
 
 class _DialogBoxItemsState extends State<DialogBoxItems> {
+
   String? _selectedUOM; 
   final TextEditingController _searchController = TextEditingController();
-  List<Item> _filteredItems = [];
+   List<Item> _filteredItems = [];
+  List<Item> _allItems = []; 
+  bool _isLoadingProducts = false;
+  double _totalAmount = 0.0; 
+ 
   Item? _selectedItem;
   bool _isCreatingNew = false;
-  double _totalAmount = 0.0;
+  
   
   List<File> _selectedImages = [];
   final ImagePicker _imagePicker = ImagePicker();
@@ -125,13 +99,54 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   @override
   void initState() {
     super.initState();
-    _filteredItems = widget.existingItems ?? SampleItems.getSampleItems();
+    
     _selectedUOM = widget.UomOptions.isNotEmpty ? widget.UomOptions[0] : null;
     
     // Add listeners to calculate total amount
     widget.quantityController.addListener(_calculateTotal);
     widget.rateController.addListener(_calculateTotal);
+     _loadProducts();
   }
+
+  Future<void> _loadProducts() async {
+  setState(() {
+    _isLoadingProducts = true;
+  });
+
+  try {
+    final productController = Provider.of<ProductListController>(context, listen: false);
+    await productController.fetchProducts();
+    
+    // Convert API products to Items
+    List<Item> apiItems = productController.products.map((datum) => Item.fromDatum(datum)).toList();
+    
+    // Combine API items with existing items (if any)
+    _allItems = [
+      ...apiItems,
+      ...(widget.existingItems ?? []),
+    ];
+    
+    _filteredItems = _allItems;
+  } catch (e) {
+    // Fallback to existing items if API fails
+    _allItems = widget.existingItems ?? [];
+    _filteredItems = _allItems;
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load products from server. ${_allItems.isEmpty ? 'No items available.' : 'Using local data.'}'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  } finally {
+    setState(() {
+      _isLoadingProducts = false;
+    });
+  }
+}
 
   void _calculateTotal() {
     setState(() {
@@ -142,20 +157,19 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   }
 
   void _filterItems(String query) {
-    final items = widget.existingItems ?? SampleItems.getSampleItems();
-    setState(() {
-      if (query.isEmpty) {
-        _filteredItems = items;
-      } else {
-        _filteredItems = items
-            .where((item) =>
-                item.name.toLowerCase().contains(query.toLowerCase()) ||
-                item.code.toLowerCase().contains(query.toLowerCase()))
-            .toList();
-      }
-    });
-  }
-
+  setState(() {
+    if (query.isEmpty) {
+      _filteredItems = _allItems;
+    } else {
+      _filteredItems = _allItems
+          .where((item) =>
+              item.name.toLowerCase().contains(query.toLowerCase()) ||
+              item.code.toLowerCase().contains(query.toLowerCase()) ||
+              (item.color?.toLowerCase().contains(query.toLowerCase()) ?? false))
+          .toList();
+    }
+  });
+}
   // Update image count whenever images are added or removed
   void _updateImageCount() {
     if (widget.onImageCountChanged != null) {
@@ -512,19 +526,19 @@ _updateImageCount();
                       ),
                     ),
                     IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedItem = null;
-                          _isCreatingNew = false;
-                          _searchController.clear();
-                          _filteredItems = widget.existingItems ?? SampleItems.getSampleItems();
-                          _totalAmount = 0.0;
-                          _selectedImages.clear();
-                        });
-                        _updateImageCount(); // Update image count when resetting
-                      },
-                      icon: Icon(Icons.close),
-                    ),
+  onPressed: () {
+    setState(() {
+      _selectedItem = null;
+      _isCreatingNew = false;
+      _searchController.clear();
+      _filteredItems = _allItems;  // Change this line
+      _totalAmount = 0.0;
+      _selectedImages.clear();
+    });
+    _updateImageCount(); // Update image count when resetting
+  },
+  icon: Icon(Icons.close),
+),
                   ],
                 ),
 
