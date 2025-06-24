@@ -1,5 +1,6 @@
 import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/create_purchase_order.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 class PurchaseOrderPage extends StatefulWidget {
   const PurchaseOrderPage({super.key});
@@ -11,7 +12,7 @@ class PurchaseOrderPage extends StatefulWidget {
 class _PurchaseOrderPageState extends State<PurchaseOrderPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  
+  final List<String> status = ["Draft","Converted","Draft","Converted","Converted"];
 
   @override
   void initState() {
@@ -105,14 +106,36 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            'SO-${2024000 + index + 1}',
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF1E293B),
-                                            ),
-                                          ),
+                                         Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                         children: [
+                                             Text(
+                                               'SO-${2024000 + index + 1}',
+                                                    style: const TextStyle(
+                                                          fontSize: 16,
+                                                                 fontWeight: FontWeight.bold,
+        color: Color(0xFF1E293B),
+      ),
+    ),
+    SizedBox(width: 8),
+    Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: status[index] == "Converted" ? Color(0xFF38BDF8) : Colors.yellow,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        status[index],
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: Colors.black, // Keep text readable
+        ),
+      ),
+    ),
+  ],
+),
+
                                           const SizedBox(height: 4),
                                           Text(
                                             'Supplier: ${['Suresh Kumar', 'Amit Industries', 'Tech Solutions', 'Global Supply Co', 'Prime Vendors'][index]}',
@@ -214,6 +237,28 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
+                                            const SizedBox(width: 136),
+                                        PopupMenuButton<String>(
+                                          icon: Icon(Icons.more_vert),
+                                          onSelected: (value) {
+                                                // Handle menu selection
+                                                if (value == 'Edit') {
+                                                  // Perform edit action
+                                                } else if (value == 'Delete') {
+                                                  // Perform delete action
+                                                }
+                                              },
+                                          
+                                           itemBuilder: (BuildContext context) => [
+                                                const PopupMenuItem<String>(
+                                                  value: 'Edit',
+                                                  child: Text('Edit'),
+                                                ),
+                                                const PopupMenuItem<String>(
+                                                  value: 'View Details',
+                                                  child: Text('View Details'),
+                                                ),
+                                              ],),
                                       ],
                                     ),
                                     
