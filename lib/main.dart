@@ -1,4 +1,5 @@
 import 'package:calicut_textile_app/controller/login_controller.dart';
+import 'package:calicut_textile_app/controller/supplier_list_controller.dart';
 import 'package:calicut_textile_app/view/login_screen/login_page.dart';
 import 'package:calicut_textile_app/view/main_screen/homepage.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LoginController()),
+        ChangeNotifierProvider(create: (_) => SuppliersController()),
       ],
       child: MyApp(),
     ),
@@ -61,7 +63,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(child: CircularProgressIndicator()), // Simple loading indicator
+      body: Center(child: Image.asset('assets/calicutlogo.png',width: 200, height: 200)), // Simple loading indicator
     );
   }
 }
