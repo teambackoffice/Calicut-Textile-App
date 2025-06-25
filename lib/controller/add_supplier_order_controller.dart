@@ -3,7 +3,7 @@ import 'package:calicut_textile_app/service/add_supplier_order_service.dart';
 import 'package:flutter/material.dart';
 
 
-class SupplierOrderController extends ChangeNotifier {
+class CreateSupplierOrderController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   bool _isOrderCreated = false;

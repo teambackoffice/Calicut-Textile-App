@@ -62,7 +62,7 @@ class SavePurchaseOrderButton extends StatelessWidget {
                 String formattedRequiredDate = _formatDateForAPI(parsedRequiredDate); // Required date
                 
                 
-                final controller = context.read<SupplierOrderController>();
+                final controller = context.read<CreateSupplierOrderController>();
         
                 // Create product list with proper date handling
                 final productList = items.map((item) {
