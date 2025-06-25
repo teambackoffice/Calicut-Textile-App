@@ -6,6 +6,8 @@ class SupplierOrderController extends ChangeNotifier {
   final SupplierOrderListService _service = SupplierOrderListService();
 
   List<Order> orders = []; // ✅ Use List<Order> instead
+  List<Product> products = []; // ✅ Use List<Product> instead
+
   int _currentPage = 1;
   final int _pageSize = 50;
   bool _isLoading = false;

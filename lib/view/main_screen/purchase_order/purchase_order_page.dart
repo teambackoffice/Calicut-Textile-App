@@ -1,6 +1,7 @@
 import 'package:calicut_textile_app/controller/get_supplier_orders_controller.dart';
 import 'package:calicut_textile_app/modal/get_supplier_orders.dart';
 import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/create_purchase_order.dart';
+import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/view_details_supplier_orders.dart/view_details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
@@ -271,6 +272,12 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                             if (value == 'Edit') {
                                               // Navigate to edit page
                                             } else if (value == 'View Details') {
+                                               Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ViewDetailsSupplierOrder(product : order.products,orders : controller.orders
+
+            )),
+          );
                                               // Navigate to details page
                                             }
                                           },
