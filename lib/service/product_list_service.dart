@@ -8,11 +8,13 @@ class ProductListService {
 
   Future<List<Datum>> getProducts() async {
     final url = Uri.parse(baseUrl);
+  
 
     try {
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
+        
       
         ProductListModal productListModal = productListModalFromJson(response.body);
         return productListModal.message.data;
@@ -20,6 +22,7 @@ class ProductListService {
         throw Exception('Failed to load products. Status Code: ${response.statusCode}');
       }
     } catch (e) {
+      
       throw Exception('Error fetching products: $e');
     }
   }

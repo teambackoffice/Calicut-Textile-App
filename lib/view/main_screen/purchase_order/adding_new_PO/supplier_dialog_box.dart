@@ -8,9 +8,11 @@ class SupplierDialogBox extends StatefulWidget {
   const SupplierDialogBox({
     super.key,
     required this.suppliers,
+    required this.onSupplierSelected, // Add callback
   });
 
   final List<String> suppliers;
+  final Function(String supplierId, String supplierName) onSupplierSelected; // Callback function
 
   @override
   State<SupplierDialogBox> createState() => _SupplierDialogBoxState();
@@ -19,37 +21,25 @@ class SupplierDialogBox extends StatefulWidget {
 class _SupplierDialogBoxState extends State<SupplierDialogBox> {
   final TextEditingController _searchController = TextEditingController();
   String searchQuery = '';
-  
-
 
   @override
-
-void initState() {
-  super.initState();
-  final controller = Provider.of<SuppliersController>(context, listen: false);
-  controller.loadSuppliers(); // Make sure this method exists in controller
-  _searchController.addListener(() {
-    setState(() {
-      searchQuery = _searchController.text.toLowerCase();
+  void initState() {
+    super.initState();
+    final controller = Provider.of<SuppliersController>(context, listen: false);
+    controller.loadSuppliers();
+    
+    // Add listener only once
+    _searchController.addListener(() {
+      setState(() {
+        searchQuery = _searchController.text.toLowerCase();
+      });
     });
-  });
-}
-
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
-    
     super.dispose();
-  }
-
-  void _onSearchChanged() {
-    _searchController.addListener(() {
-  setState(() {
-    searchQuery = _searchController.text.toLowerCase();
-  });
-});
-
   }
 
   void _clearSearch() {
@@ -69,12 +59,12 @@ void initState() {
           maxHeight: MediaQuery.of(context).size.height * 0.7,
         ),
         child: Consumer<SuppliersController>(
-      builder: (context, controller, child) {
-        // Apply search filter
-        final suppliers = controller.suppliers.where((supplier) {
-  return supplier.supplierName.toLowerCase().contains(searchQuery) ||
-         supplier.supplierId.toLowerCase().contains(searchQuery);
-}).toList();
+          builder: (context, controller, child) {
+            // Apply search filter
+            final suppliers = controller.suppliers.where((supplier) {
+              return supplier.supplierName.toLowerCase().contains(searchQuery) ||
+                     supplier.supplierId.toLowerCase().contains(searchQuery);
+            }).toList();
 
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -162,7 +152,6 @@ void initState() {
                   ),
                 ),
                 
-            
                 // Suppliers List
                 Flexible(
                   child: suppliers.isEmpty
@@ -212,7 +201,12 @@ void initState() {
                               color: Colors.transparent,
                               child: InkWell(
                                 onTap: () {
-                                  Navigator.pop(context, supplier);
+                                  // Call the callback with both ID and name
+                                  widget.onSupplierSelected(
+                                    supplier.supplierId,
+                                    supplier.supplierName,
+                                  );
+                                  Navigator.pop(context);
                                 },
                                 borderRadius: BorderRadius.circular(12),
                                 child: Container(
@@ -241,23 +235,15 @@ void initState() {
                                           ),
                                         ),
                                       ),
-                                      
-                                      SizedBox(height: 10,)
+                                      const SizedBox(height: 10),
                                     ],
                                   ),
-                                  
                                 ),
-                                
                               ),
-                              
                             );
                           },
                         ),
-                        
                 ),
-            
-                // Footer
-                
               ],
             );
           }

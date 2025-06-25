@@ -18,6 +18,7 @@ class ProductService {
     final uri = Uri.parse(baseUrl);
      // Get API key from secure storage
     final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
+    
    
    
     
@@ -46,17 +47,23 @@ class ProductService {
           );
         }
       }
+      print('Request Fields:');
 request.fields.forEach((key, value) {
+ 
 });
 
+print('Attached Files:');
 for (var file in request.files) {
+
 }
 
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
       
+     
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        
         _showSnackbar(context, 'Product created successfully!', Colors.green);
         return true;
       } else if (response.statusCode == 400) {
@@ -79,6 +86,7 @@ for (var file in request.files) {
         return null;
       }
     } catch (e) {
+      
       _showSnackbar(context, 'Network error: ${e.toString()}', Colors.red);
       return null;
     }

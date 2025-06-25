@@ -84,7 +84,7 @@ final void Function(List<String>)? onImagesSelected;
 
 class _DialogBoxItemsState extends State<DialogBoxItems> {
 
-  String? _selectedUOM; 
+  String? _selectedUOM ; 
   final TextEditingController _searchController = TextEditingController();
    List<Item> _filteredItems = [];
   List<Item> _allItems = []; 
@@ -102,8 +102,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   @override
   void initState() {
     super.initState();
-    
-    _selectedUOM = widget.UomOptions.isNotEmpty ? widget.UomOptions[0] : null;
+     _selectedUOM = null;
     
     // Add listeners to calculate total amount
     widget.quantityController.addListener(_calculateTotal);
@@ -112,31 +111,13 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   }
 
    void _addSearchItemDirectly(Item item) {
+    // 1. Send data back to parent page via callback
+    widget.onItemCreated(item);
     
-    
-    // Ensure the item has all required data
-    final itemToSend = Item(
-      code: item.code,
-      name: item.name,
-      color: item.color ?? '',
-      selectedUOM: item.selectedUOM,
-      rate: item.rate ?? 0.0,
-      quantity: item.quantity ?? 1.0, // Default to 1 if not specified
-      image1: item.image1,
-      image2: item.image2,
-      image3: item.image3,
-    );
-    
-    
-    // Send data to parent page via callback
-    if (widget.onItemCreated != null) {
-      widget.onItemCreated(itemToSend);
-    } else {
-      return;
-    }
-    
-    // Close the dialog (returns to CreatePurchaseOrder)
+    // 2. Close the dialog (returns to CreatePurchaseOrder)
     Navigator.pop(context);
+    
+    // 3. The CreatePurchaseOrder page now shows the added item!
   }
 
   Future<void> _loadProducts() async {
@@ -383,78 +364,6 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
     });
     _updateImageCount(); // Update image count when creating new item
   }
-   Widget _buildSearchResults() {
-    return Container(
-      constraints: BoxConstraints(maxHeight: 300),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListView.builder(
-        shrinkWrap: true,
-        itemCount: _filteredItems.length,
-        itemBuilder: (context, index) {
-          final item = _filteredItems[index];
-          return Container(
-            decoration: BoxDecoration(
-              border: index > 0 
-                  ? Border(top: BorderSide(color: Colors.grey[200]!))
-                  : null,
-            ),
-            child: ListTile(
-              title: Text(
-                item.name,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 4),
-                  Text('Code: ${item.code}'),
-                  if (item.color != null && item.color!.isNotEmpty)
-                    Text('Color: ${item.color}'),
-                  Row(
-                    children: [
-                      if (item.rate != null)
-                        Text('Rate: ₹${item.rate!.toStringAsFixed(2)}'),
-                      if (item.rate != null && item.quantity != null)
-                        Text(' | '),
-                      if (item.quantity != null)
-                        Text('Qty: ${item.quantity!.toStringAsFixed(0)}'),
-                      Text(' | UOM: ${item.selectedUOM}'),
-                    ],
-                  ),
-                  SizedBox(height: 4),
-                ],
-              ),
-              trailing: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Add',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              onTap: () {
-                _addSearchItemDirectly(item); // 🎯 THIS IS THE KEY METHOD!
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -506,7 +415,68 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildSearchResults(),
+                    Container(
+                      constraints: BoxConstraints(maxHeight: 300),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _filteredItems.length,
+                        itemBuilder: (context, index) {
+                          final item = _filteredItems[index];
+                          return Container(
+                            decoration: BoxDecoration(
+                              border: index > 0 
+                                  ? Border(top: BorderSide(color: Colors.grey[200]!))
+                                  : null,
+                            ),
+                            child: ListTile(
+                              title: Text(
+                                item.name,
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Code: ${item.code}'),
+                                  if (item.color != null && item.color!.isNotEmpty)
+                                    Text('Color: ${item.color}'),
+                                  Row(
+                                    children: [
+                                      if (item.rate != null)
+                                        Text('Rate: ₹${item.rate!.toStringAsFixed(2)}'),
+                                      if (item.rate != null && item.quantity != null)
+                                        Text(' | '),
+                                      if (item.quantity != null)
+                                        Text('Qty: ${item.quantity!.toStringAsFixed(0)}'),
+                                      Text(' | UOM: ${item.selectedUOM}'),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              trailing: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'Add',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              onTap: () => _addSearchItemDirectly(item), // Direct add!
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ] else ...[
                     Container(
                       width: double.infinity,
@@ -705,31 +675,42 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            value: _selectedUOM,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedUOM = value!;
-                              });
-                              if (widget.onUOMSelected != null) {
-                                widget.onUOMSelected!(value!);
-                              }
-                            },
-                            items: widget.UomOptions.map((uom) {
-                              return DropdownMenuItem(
-                                value: uom,
-                                child: Text(uom),
-                              );
-                            }).toList(),
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 20,
-                              ),
-                            ),
-                          ),
+  isExpanded: true, // 🔐 Prevents overflow
+  value: _selectedUOM,
+  hint: const Text(
+    'Select UOM',
+    overflow: TextOverflow.ellipsis, // Optional: helps clip long hint
+    style: TextStyle(color: Colors.grey),
+  ),
+  onChanged: (value) {
+    print(_selectedUOM);
+    setState(() {
+      _selectedUOM = value;
+    });
+    if (widget.onUOMSelected != null && value != null) {
+      widget.onUOMSelected!(value);
+    }
+  },
+  items: widget.UomOptions.map((uom) {
+    return DropdownMenuItem<String>(
+      value: uom,
+      child: Text(
+        uom,
+        overflow: TextOverflow.ellipsis, // Optional: handles long UOM names
+      ),
+    );
+  }).toList(),
+  decoration: InputDecoration(
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+    ),
+    contentPadding: const EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 20,
+    ),
+  ),
+)
+
                         ],
                       ),
                     ),

@@ -26,6 +26,7 @@ class SupplierDetails extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
+                  fontSize: 18,
                 ),
               ),
               background: Container(

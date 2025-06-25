@@ -19,6 +19,7 @@ class PurchaseOrderItem {
   int quantity;
   double rate;
   String color;
+  double amount;
   String uom;
   int imageCount; // Added image count field
   
@@ -28,6 +29,7 @@ class PurchaseOrderItem {
     required this.quantity,
     required this.rate,
     required this.color,
+    required this.amount,
     required this.uom,
     this.imageCount = 0, // Default to 0 images
   });
@@ -46,7 +48,7 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   String selectedSupplier = 'Select Suppliers';
   String _selectedUOM = '';
   int _selectedImageCount = 0; // Track image count from dialog
-  final List<String> _uomOptions = ['PCS', 'KG', 'L', 'M', 'SQM', 'CUM'];
+  final List<String> _uomOptions = ['unit', 'box', 'pair', 'set', 'meter', 'foot','kg','cm'];
 
   
     List<String> _selectedImagePaths = [];
@@ -79,25 +81,25 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     'Royal Traders Group',
     'Galaxy Distributors',
   ];
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController requireddatecontroller = TextEditingController();
   DateTime? _selectedDate;
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
+  final DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: _selectedDate ?? DateTime.now(),
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2100),
+  );
 
-
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _controller.text = DateFormat('dd-MM-yyyy').format(picked);
-      });
-    }
+  if (picked != null && picked != _selectedDate) {
+    setState(() {
+      _selectedDate = picked;
+      requireddatecontroller.text = DateFormat('yyyy-MM-dd').format(picked); // ✅ fixed
+    });
   }
+}
+
 
   final List<PurchaseOrderItem> items = [];
   final _formKey = GlobalKey<FormState>();
@@ -149,8 +151,9 @@ void _handleItemCreated(Item item) {
         quantity: item.quantity?.toInt() ?? 1,
         rate: item.rate ?? 0.0,
         color: item.color ?? '',
-        uom: item.selectedUOM,
-        imageCount: 0, // You can update this based on images if needed
+        uom: item.selectedUOM!,
+        imageCount: 0, amount: (item.rate)! * (item.quantity!),
+ // You can update this based on images if needed
       ));
     });
     
@@ -214,7 +217,7 @@ void _addItem() async {
             rate: double.parse(_rateController.text),
             color: _colorController.text,
             uom: _selectedUOM,
-            imageCount: _selectedImageCount,
+            imageCount: _selectedImageCount, amount: (int.parse(_quantityController.text))! * (double.parse(_rateController.text)),
           ));
         });
 
@@ -375,22 +378,28 @@ void _clearForm() {
       },
     );
   }
+   String? selectedSupplierId; // Store the supplier ID
+  String? selectedSupplierName;
+  final TextEditingController suppliercontroller =TextEditingController();
 
-  void _openSupplierDialog() async {
-    final result = await showDialog<String>(
+   void _showSupplierDialog() {
+    showDialog(
       context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return SupplierDialogBox(suppliers: suppliers);
-      },
+      builder: (context) => SupplierDialogBox(
+        suppliers: [], // Your suppliers list
+        onSupplierSelected: (String supplierId, String supplierName) {
+          setState(() {
+            selectedSupplierId = supplierId;
+            selectedSupplierName = supplierName;
+            suppliercontroller.text = supplierName; // Update the TextField
+          });
+          
+          // Optional: Call any additional callback if needed
+        },
+      ),
     );
-
-    if (result != null) {
-      setState(() {
-        selectedSupplier = result;
-      });
-    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -461,7 +470,7 @@ void _clearForm() {
                         borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
                       ),
                     ),
-                    controller: _controller,
+                    controller: requireddatecontroller,
                     readOnly: true,
                     onTap: () => _selectDate(context),
                   ),
@@ -481,7 +490,7 @@ void _clearForm() {
                   ),
                   const SizedBox(height: 10),
                   GestureDetector(
-                    onTap: _openSupplierDialog,
+                    onTap: _showSupplierDialog,
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
@@ -494,7 +503,7 @@ void _clearForm() {
                         ],
                       ),
                       child: AbsorbPointer(
-                        child: SuppliersSelect(selectedSupplier: selectedSupplier),
+                        child: SuppliersSelect(supplierName : suppliercontroller),
                       ),
                     ),
                   )
@@ -696,7 +705,7 @@ void _clearForm() {
               const SizedBox(height: 24),
 
               // Action Buttons
-              SavePurchaseOrderButton(items: items),
+              SavePurchaseOrderButton(items: items,grandTotal :grandTotal,supplier :selectedSupplierId,requiredDate : requireddatecontroller  ),
             ],
           ),
         ),

@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 class SuppliersSelect extends StatelessWidget {
   const SuppliersSelect({
     super.key,
-    required this.selectedSupplier,
+    this.supplierName, // Keep original parameter name
   });
 
-  final String selectedSupplier;
+  final TextEditingController? supplierName; // Keep original parameter name
 
   @override
   Widget build(BuildContext context) {
@@ -18,13 +18,10 @@ class SuppliersSelect extends StatelessWidget {
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
-        hintText: selectedSupplier == null || selectedSupplier!.isEmpty 
-            ? 'Tap to select supplier' 
-            : selectedSupplier,
+        
         hintStyle: TextStyle(
-          color: selectedSupplier == null || selectedSupplier!.isEmpty 
-              ? Colors.grey[500] 
-              : Colors.black87,
+          
+           
           fontSize: 16,
         ),
         filled: true,
@@ -37,9 +34,7 @@ class SuppliersSelect extends StatelessWidget {
           margin: const EdgeInsets.only(left: 12, right: 8),
           child: Icon(
             Icons.business,
-            color: selectedSupplier == null || selectedSupplier!.isEmpty 
-                ? Colors.grey[400] 
-                : Colors.blueAccent,
+            
             size: 22,
           ),
         ),
@@ -64,10 +59,9 @@ class SuppliersSelect extends StatelessWidget {
           borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
         ),
       ),
+      // Use the supplierName directly as the controller text
       controller: TextEditingController(
-        text: selectedSupplier == null || selectedSupplier!.isEmpty 
-            ? '' 
-            : selectedSupplier,
+        text: supplierName!.text, // Use null-aware operator
       ),
       style: const TextStyle(
         fontSize: 16, 
@@ -78,4 +72,3 @@ class SuppliersSelect extends StatelessWidget {
     );
   }
 }
-
