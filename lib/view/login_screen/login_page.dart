@@ -106,25 +106,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.indigo[700]!, Colors.indigo[500]!],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                         
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.indigo.withOpacity(0.3),
+                              color: Colors.black.withOpacity(0.3),
                               blurRadius: 15,
                               offset: const Offset(0, 8),
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.inventory_2_outlined,
-                          size: 40,
-                          color: Colors.white,
-                        ),
+                        child: Image.asset('assets/calicutlogo.png')
                       ),
                       const SizedBox(height: 16),
                       Text(
