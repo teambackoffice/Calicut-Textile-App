@@ -1,3 +1,4 @@
+import 'package:calicut_textile_app/controller/get_supplier_orders_controller.dart';
 import 'package:calicut_textile_app/controller/product_controller.dart';
 import 'package:calicut_textile_app/controller/supplier_list_controller.dart';
 import 'package:calicut_textile_app/service/edit_supplier_order_service.dart';
@@ -272,7 +273,8 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
 
       if (result == true && mounted) {
         // Success is already handled in the service with snackbar
-        Navigator.pop(context, true); // Return true to indicate success
+        Navigator.pop(context, true); 
+        Provider.of<SupplierOrderController>(context).loadSupplierOrders(); // Return true to indicate success
       } else if (result == null && mounted) {
         // Error is already handled in the service with snackbar
         // Stay on the page to allow user to try again

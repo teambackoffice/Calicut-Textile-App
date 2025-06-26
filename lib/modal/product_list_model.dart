@@ -53,7 +53,7 @@ class Datum {
     String productName;
     double rate;
     double quantity;
-     int? pcs;           // Added pcs field
+     double? pcs;           // Added pcs field
   double? netQty; 
     double amount;
     String color;

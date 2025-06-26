@@ -46,12 +46,7 @@ class UpdateSupplierOrderService {
         }).toList(),
       };
 
-      log('Update Supplier Order Request:');
-      log('URL: $baseUrl');
-      log('Headers: $headers');
-      log('Body: ${json.encode(requestBody)}');
-      log('Supplier ID being sent: ${order.supplier}');
-      log('Supplier Name (for reference): ${order.supplierName}');
+      
 
       // Create and send request
       var request = http.Request('POST', uri);
@@ -61,8 +56,7 @@ class UpdateSupplierOrderService {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
       
-      log('Response Status Code: ${response.statusCode}');
-      log('Response Body: $responseBody');
+     
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final result = jsonDecode(responseBody);
@@ -98,7 +92,6 @@ class UpdateSupplierOrderService {
         return null;
       }
     } catch (e) {
-      log('Update Supplier Order Error: $e');
       _showSnackbar(context, 'Network error: ${e.toString()}', Colors.red);
       return null;
     }

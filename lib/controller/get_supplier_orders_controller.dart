@@ -17,35 +17,36 @@ class SupplierOrderController extends ChangeNotifier {
   bool get hasMore => _hasMore;
 
   Future<void> loadSupplierOrders() async {
-    if (_isLoading || !_hasMore) return;
+  if (_isLoading || !_hasMore) return;
 
-    _isLoading = true;
-    notifyListeners();
+  _isLoading = true;
+  notifyListeners();
 
-    try {
-      final List<Order> newOrders = await _service.getSupplierOrders(
-        page: _currentPage,
-        pageSize: _pageSize,
-      );
+  try {
+    final List<Order> newOrders = await _service.getSupplierOrders(
+      page: _currentPage,
+      pageSize: _pageSize,
+    );
 
-      if (newOrders.length < _pageSize) {
-        _hasMore = false;
-      }
-
-      if (newOrders.isNotEmpty) {
-        orders.addAll(newOrders); // ✅ No casting needed
-        _currentPage++;
-      } else {
-        _hasMore = false;
-      }
-    } catch (e) {
-      debugPrint('Error loading supplier orders: $e');
+    if (newOrders.length < _pageSize) {
       _hasMore = false;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
+
+    if (newOrders.isNotEmpty) {
+      orders.addAll(newOrders);
+      _currentPage++;
+    } else {
+      _hasMore = false;
+    }
+  } catch (e) {
+    debugPrint('Error loading supplier orders: $e');
+    _hasMore = false;
+  } finally {
+    _isLoading = false;
+    notifyListeners();
   }
+}
+
 
   void clearOrders() {
     orders.clear();

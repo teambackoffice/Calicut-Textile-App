@@ -17,7 +17,7 @@ class PurchaseOrderItem {
   String itemCode;
   String itemName;
   int quantity;
-  int? pcs;           // Added pcs field
+  double? pcs;           // Added pcs field
   double? netQty;     // Added netQty field
   double rate;
   String color;
@@ -38,7 +38,7 @@ class PurchaseOrderItem {
     this.imageCount = 0,
   });
   
-  double get total => quantity * rate;
+  double get total => netQty! * rate;
 }
 
 class CreatePurchaseOrder extends StatefulWidget {
@@ -68,23 +68,7 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   }
 
 
-  final List<String> suppliers = [
-    'Global Supplies Ltd.',
-    'FreshMart Distributors',
-    'BlueWave Traders',
-    'Sunrise Industries',
-    'GreenLeaf Suppliers',
-    'Ace Hardware Co.',
-    'Silverline Wholesalers',
-    'Urban Essentials',
-    'MegaMart Partners',
-    'PrimeSource Pvt. Ltd.',
-    'FastTrack Logistics',
-    'BrightStar Solutions',
-    'Infinity Supplies',
-    'Royal Traders Group',
-    'Galaxy Distributors',
-  ];
+  
   final TextEditingController requireddatecontroller = TextEditingController();
   DateTime? _selectedDate;
 
@@ -223,7 +207,7 @@ void _addItem() async {
             itemCode: _itemCodeController.text,
             itemName: _itemNameController.text,
             quantity: int.parse(_quantityController.text),
-            pcs: int.tryParse(_pcsController.text),          // Include pcs
+            pcs: double.tryParse(_pcsController.text),          // Include pcs
             netQty: calculatedNetQty,                        // Include netQty
             rate: double.parse(_rateController.text),
             color: _colorController.text,
@@ -566,143 +550,236 @@ void _clearForm() {
                   
                   const SizedBox(height: 16),
                   
-                  // Items List
-                  if (items.isEmpty)
-                    EmptyItemsContainer()
-                  else
-                    ...items.asMap().entries.map((entry) {
-                      int index = entry.key;
-                      PurchaseOrderItem item = entry.value;
-                      return Card(
-                        color: Colors.white,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      item.itemName,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () => _removeItem(index),
-                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                    constraints: const BoxConstraints(),
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                             
-                              // First row: Quantity, Rate, Total
-                              Row(
-                                children: [
-                                  Row(
-                                    children: [
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Qty: ${item.quantity.toString()}',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(width: 20),
-                                  Row(
-                                    children: [
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Rate: ${item.rate.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(width: 25),
-                                  Row(
-                                    children: [
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Total: ${item.total.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              
-                              // Second row: Color, UOM, Images (always show)
-                              const SizedBox(height: 8),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Color (only if not empty)
-                                  if (item.color.isNotEmpty) ...[
-                                    Icon(Icons.color_lens, size: 16, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      item.color,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                  ],
-                                  
-                                  // UOM (always show)
-                                  Icon(Icons.straighten, size: 16, color: Colors.grey.shade600),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    "UOM: ${item.uom}", // Use item.uom instead of global _selectedUOM
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                  
-                                  // Images (only if > 0)
-                                  if (item.imageCount > 0) ...[
-                                    const SizedBox(width: 20),
-                                    Icon(Icons.photo_library, size: 16, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      "${item.imageCount} image${item.imageCount > 1 ? 's' : ''}",
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ],
+                if (items.isEmpty)
+  EmptyItemsContainer()
+else
+  ...items.asMap().entries.map((entry) {
+    int index = entry.key;
+    PurchaseOrderItem item = entry.value;
+    return Card(
+      color: Colors.white,
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    item.itemName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => _removeItem(index),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+           
+            // First row: Quantity, PCS, Net Qty
+            Row(
+              children: [
+                // Quantity
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.inventory, size: 14, color: Colors.blue.shade700),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Qty: ${item.quantity}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // PCS (if available)
+                if (item.pcs != null) ...[
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.apps, size: 14, color: Colors.green.shade700),
+                        const SizedBox(width: 4),
+                        Text(
+                          'PCS: ${item.pcs}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      );
-                    }),
+                      ],
+                    ),
+                  ),
+                ],
+                
+                // Net Qty (if available)
+                if (item.netQty != null) ...[
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.calculate, size: 14, color: Colors.purple.shade700),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Net: ${item.netQty!.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.purple.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            
+            const SizedBox(height: 8),
+            
+            // Second row: Rate and Total
+            Row(
+              children: [
+                // Rate
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.currency_rupee, size: 14, color: Colors.orange.shade700),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Rate: ${item.rate.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.orange.shade700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(width: 12),
+                
+                // Total
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calculate, size: 14, color: Colors.red.shade700),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Total: ₹${item.total.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.red.shade700,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 8),
+            
+            // Third row: Color, UOM, Images (metadata)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Color (only if not empty)
+                if (item.color.isNotEmpty) ...[
+                  Icon(Icons.color_lens, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Text(
+                    item.color,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                ],
+                
+                // UOM (always show)
+                Icon(Icons.straighten, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(
+                  "UOM: ${item.uom}",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                
+                // Images (only if > 0)
+                if (item.imageCount > 0) ...[
+                  const SizedBox(width: 20),
+                  Icon(Icons.photo_library, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Text(
+                    "${item.imageCount} image${item.imageCount > 1 ? 's' : ''}",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }),
                 ],
               ),
               const SizedBox(height: 20),

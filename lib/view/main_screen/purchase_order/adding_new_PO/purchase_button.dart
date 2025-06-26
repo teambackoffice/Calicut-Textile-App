@@ -70,12 +70,24 @@ class SavePurchaseOrderButton extends StatelessWidget {
                   return Product(
                     product: item.itemName,
                     qty: item.quantity.toInt(),
-                    uom: item.uom ?? "Nos",
+                    uom: item.uom,
                     rate: item.rate.toInt(),
+                   
                     amount: item.amount.toInt(),
-                    requiredDate: parsedRequiredDate, // Use the parsed DateTime directly
+                    requiredDate: parsedRequiredDate, pcs: item.pcs, netQty: item.netQty!, // Use the parsed DateTime directly
                   );
                 }).toList();
+               productList.forEach((product) {
+  print('--- Product ---');
+  print('Product Name: ${product.product}');
+  print('Quantity: ${product.qty}');
+  print('UOM: ${product.uom}');
+  print('Rate: ${product.rate}');
+  print('Amount: ${product.amount}');
+  print('Required Date: ${product.requiredDate}');
+  print('PCS: ${product.pcs}');
+  print('Net Qty: ${product.netQty}');
+});
                 
                 
                 // Validate supplier

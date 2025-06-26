@@ -37,47 +37,59 @@ class SupplierOrderModal {
     };
 }
 
+// Updated Product class in add_supplier_order_modal.dart
 class Product {
-    String product;
-    int qty;
-    String uom;
-    int rate;
-    int amount;
-    DateTime requiredDate;
+  final String product;
+  final int qty;
+  final double? pcs;          // Add pcs field
+  final double? netQty;    // Add netQty field
+  final String? uom;
+  final int rate;
+  final int amount;
+  final String? color;     // Add color field
+  final DateTime? requiredDate;
 
-    Product({
-        required this.product,
-        required this.qty,
-        required this.uom,
-        required this.rate,
-        required this.amount,
-        required this.requiredDate,
-    });
+  Product({
+    required this.product,
+    required this.qty,
+    this.pcs,              // Optional pcs
+    this.netQty,           // Optional netQty
+    this.uom,
+    required this.rate,
+    required this.amount,
+    this.color,            // Optional color
+    this.requiredDate,
+  });
 
-    factory Product.fromJson(Map<String, dynamic> json) => Product(
-        product: json["product"],
-        qty: json["qty"],
-        uom: json["uom"],
-        rate: json["rate"],
-        amount: json["amount"],
-        requiredDate: DateTime.parse(json["required_date"]),
+  // Convert to JSON for API call
+  Map<String, dynamic> toJson() {
+    return {
+      'product': product,
+      'qty': qty,
+      'pcs': pcs ?? 0,
+      'net_qty': netQty ?? 0.0,
+      'uom': uom ?? "Nos",
+      'rate': rate,
+      'amount': amount,
+      'color': color,
+      'required_date': requiredDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+    };
+  }
+
+  // Create from JSON
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      product: json['product'] ?? '',
+      qty: json['qty'] ?? 0,
+      pcs: json['pcs'],
+      netQty: json['net_qty']?.toDouble(),
+      uom: json['uom'],
+      rate: json['rate'] ?? 0,
+      amount: json['amount'] ?? 0,
+      color: json['color'],
+      requiredDate: json['required_date'] != null 
+          ? DateTime.tryParse(json['required_date']) 
+          : null,
     );
-
-    Map<String, dynamic> toJson() {
-        // Debug print to check the date values
-        
-        // Use DateFormat for more reliable date formatting
-        final dateFormatter = DateFormat('yyyy-MM-dd');
-        final formattedDate = dateFormatter.format(requiredDate);
-        
-        
-        return {
-            "product": product,
-            "qty": qty,
-            "uom": uom,
-            "rate": rate,
-            "amount": amount,
-            "required_date": formattedDate,
-        };
-    }
+  }
 }

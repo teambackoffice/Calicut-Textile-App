@@ -86,8 +86,14 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                   );
                 }
 
-                return Container(
-                  margin: const EdgeInsets.only(top: 16),
+                return RefreshIndicator(
+                  onRefresh: () async {
+  final controller = Provider.of<SupplierOrderController>(context, listen: false);
+  controller.clearOrders(); // Reset pagination + orders
+  await controller.loadSupplierOrders(); // Load fresh data
+},
+
+               
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: controller.orders.length ,
@@ -157,7 +163,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                                 children: [
                                                   Text(
                                                     order.products.isNotEmpty ? order.products.first.product : 'No Product'
-,
+                  ,
                                                     style: const TextStyle(
                                                       fontSize: 16,
                                                       fontWeight: FontWeight.bold,
@@ -268,51 +274,51 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                           ],
                                         ),
                                         PopupMenuButton<String>(
-  icon: const Icon(Icons.more_vert),
-  onSelected: (value) {
-    if (value == 'Edit') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EditSupplierOrderPage(order: order),
-        ),
-      );
-    } else if (value == 'View Details') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ViewDetailsSupplierOrder(
-            product: order.products,
-            orders: controller.orders,
-          ),
-        ),
-      );
-    }
-  },
-  itemBuilder: (BuildContext context) {
-    // Conditionally build menu items based on order.status
-    if (order.status == "Draft") {
-      return const [
-        PopupMenuItem<String>(
-          value: 'Edit',
-          child: Text('Edit'),
-        ),
-        PopupMenuItem<String>(
-          value: 'View Details',
-          child: Text('View Details'),
-        ),
-      ];
-    } else {
-      return const [
-        PopupMenuItem<String>(
-          value: 'View Details',
-          child: Text('View Details'),
-        ),
-      ];
-    }
-  },
-),
-
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) {
+                      if (value == 'Edit') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditSupplierOrderPage(order: order),
+                          ),
+                        );
+                      } else if (value == 'View Details') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ViewDetailsSupplierOrder(
+                              product: order.products,
+                              orders: controller.orders,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    itemBuilder: (BuildContext context) {
+                      // Conditionally build menu items based on order.status
+                      if (order.status == "Draft") {
+                        return const [
+                          PopupMenuItem<String>(
+                            value: 'Edit',
+                            child: Text('Edit'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'View Details',
+                            child: Text('View Details'),
+                          ),
+                        ];
+                      } else {
+                        return const [
+                          PopupMenuItem<String>(
+                            value: 'View Details',
+                            child: Text('View Details'),
+                          ),
+                        ];
+                      }
+                    },
+                  ),
+                  
                                       ],
                                     ),
                                   ],
@@ -351,7 +357,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
 
   Color _getStatusColor(String? status) {
     switch (status?.toLowerCase()) {
-      case 'converted':
+      case 'sumbitted':
         return const Color(0xFF10B981); // Green for converted
       case 'draft':
         return const Color(0xFFF59E0B); // Yellow for draft
