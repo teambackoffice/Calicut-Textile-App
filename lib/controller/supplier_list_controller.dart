@@ -1,4 +1,4 @@
-import 'package:calicut_textile_app/modal/supplier_list._modaldart';
+import 'package:calicut_textile_app/modal/supplier_list_modal.dart';
 import 'package:calicut_textile_app/service/suppliers_list_service.dart';
 
 import 'package:flutter/material.dart';

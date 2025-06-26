@@ -1,5 +1,5 @@
+import 'package:calicut_textile_app/modal/supplier_list_modal.dart';
 import 'package:flutter/material.dart';
-import 'package:calicut_textile_app/modal/supplier_list._modaldart';
 
 class SupplierDetails extends StatelessWidget {
   final Supplier supplier;

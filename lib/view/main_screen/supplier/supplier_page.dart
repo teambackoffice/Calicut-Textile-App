@@ -3,7 +3,6 @@ import 'package:calicut_textile_app/view/main_screen/supplier/supplier_details.d
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:calicut_textile_app/modal/supplier_list._modaldart';
 
 class SuppliersPage extends StatefulWidget {
   @override

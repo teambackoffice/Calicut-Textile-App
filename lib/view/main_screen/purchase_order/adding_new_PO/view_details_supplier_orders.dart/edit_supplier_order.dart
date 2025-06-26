@@ -1,13 +1,13 @@
 import 'package:calicut_textile_app/controller/get_supplier_orders_controller.dart';
 import 'package:calicut_textile_app/controller/product_controller.dart';
 import 'package:calicut_textile_app/controller/supplier_list_controller.dart';
+import 'package:calicut_textile_app/modal/product_list_model.dart';
+import 'package:calicut_textile_app/modal/supplier_list_modal.dart';
 import 'package:calicut_textile_app/service/edit_supplier_order_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:calicut_textile_app/modal/get_supplier_orders.dart' as OrderModel;
-import 'package:calicut_textile_app/modal/product_list_model.dart';
-import 'package:calicut_textile_app/modal/supplier_list._modaldart';
 import 'package:calicut_textile_app/modal/add_product_modal.dart' as AddProductModel;
 
 class EditSupplierOrderPage extends StatefulWidget {
@@ -668,7 +668,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     String? validSelectedSupplier;
     if (_selectedSupplierId.isNotEmpty) {
       final supplierExists = _availableSuppliers.any(
-        (supplier) => supplier.supplierName == _selectedSupplierId
+        (supplier) => supplier?.supplierName == _selectedSupplierId
       );
       if (supplierExists) {
         validSelectedSupplier = _selectedSupplierId;
@@ -687,7 +687,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
       ),
       hint: const Text('Select Supplier'),
       items: _availableSuppliers.map((supplier) => DropdownMenuItem(
-        value: supplier.supplierId, // This is actually the supplier ID
+        value: supplier?.supplierId, // This is actually the supplier ID
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,

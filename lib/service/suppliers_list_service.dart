@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:calicut_textile_app/modal/supplier_list._modaldart';
+import 'package:calicut_textile_app/modal/supplier_list_modal.dart';
 import 'package:http/http.dart' as http;
 
 class SuppliersListService {
