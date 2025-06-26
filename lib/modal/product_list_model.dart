@@ -53,6 +53,8 @@ class Datum {
     String productName;
     double rate;
     double quantity;
+     int? pcs;           // Added pcs field
+  double? netQty; 
     double amount;
     String color;
     String uom;
@@ -65,6 +67,8 @@ class Datum {
         required this.productName,
         required this.rate,
         required this.quantity,
+        required this.pcs,           // Optional pcs
+        required this.netQty, 
         required this.amount,
         required this.color,
         required this.uom,
@@ -78,6 +82,8 @@ class Datum {
         productName: json["product_name"],
         rate: json["rate"],
         quantity: json["quantity"],
+        pcs: json["pcs"],
+        netQty: json["net_qty"],
         amount: json["amount"],
         color: json["color"],
         uom: json["uom"],
@@ -91,6 +97,8 @@ class Datum {
         "product_name": productName,
         "rate": rate,
         "quantity": quantity,
+        "pcs": pcs,
+        "net_qty": netQty,
         "amount": amount,
         "color": color,
         "uom": uom,

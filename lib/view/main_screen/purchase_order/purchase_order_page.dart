@@ -1,6 +1,7 @@
 import 'package:calicut_textile_app/controller/get_supplier_orders_controller.dart';
 import 'package:calicut_textile_app/modal/get_supplier_orders.dart';
 import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/create_purchase_order.dart';
+import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/view_details_supplier_orders.dart/edit_supplier_order.dart';
 import 'package:calicut_textile_app/view/main_screen/purchase_order/adding_new_PO/view_details_supplier_orders.dart/view_details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -267,31 +268,51 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                           ],
                                         ),
                                         PopupMenuButton<String>(
-                                          icon: const Icon(Icons.more_vert),
-                                          onSelected: (value) {
-                                            if (value == 'Edit') {
-                                              // Navigate to edit page
-                                            } else if (value == 'View Details') {
-                                               Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ViewDetailsSupplierOrder(product : order.products,orders : controller.orders
+  icon: const Icon(Icons.more_vert),
+  onSelected: (value) {
+    if (value == 'Edit') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EditSupplierOrderPage(order: order),
+        ),
+      );
+    } else if (value == 'View Details') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ViewDetailsSupplierOrder(
+            product: order.products,
+            orders: controller.orders,
+          ),
+        ),
+      );
+    }
+  },
+  itemBuilder: (BuildContext context) {
+    // Conditionally build menu items based on order.status
+    if (order.status == "Draft") {
+      return const [
+        PopupMenuItem<String>(
+          value: 'Edit',
+          child: Text('Edit'),
+        ),
+        PopupMenuItem<String>(
+          value: 'View Details',
+          child: Text('View Details'),
+        ),
+      ];
+    } else {
+      return const [
+        PopupMenuItem<String>(
+          value: 'View Details',
+          child: Text('View Details'),
+        ),
+      ];
+    }
+  },
+),
 
-            )),
-          );
-                                              // Navigate to details page
-                                            }
-                                          },
-                                          itemBuilder: (BuildContext context) => [
-                                            const PopupMenuItem<String>(
-                                              value: 'Edit',
-                                              child: Text('Edit'),
-                                            ),
-                                            const PopupMenuItem<String>(
-                                              value: 'View Details',
-                                              child: Text('View Details'),
-                                            ),
-                                          ],
-                                        ),
                                       ],
                                     ),
                                   ],

@@ -101,8 +101,10 @@ class Order {
 class Product {
     String product;
     double quantity;
-    Uom uom;
+    Uom? uom;
     double rate;
+    double? pcs;
+    double? netQty;
     double amount;
     DateTime requiredBy;
 
@@ -111,6 +113,8 @@ class Product {
         required this.quantity,
         required this.uom,
         required this.rate,
+        required this.pcs,
+        required this.netQty,
         required this.amount,
         required this.requiredBy,
     });
@@ -120,6 +124,8 @@ class Product {
         quantity: json["quantity"],
         uom: uomValues.map[json["uom"]]!,
         rate: json["rate"],
+        pcs: json["pcs"],
+        netQty: json["net_qty"],
         amount: json["amount"],
         requiredBy: DateTime.parse(json["required_by"]),
     );
@@ -129,6 +135,8 @@ class Product {
         "quantity": quantity,
         "uom": uomValues.reverse[uom],
         "rate": rate,
+        "pcs": pcs,
+        "net_qty": netQty,
         "amount": amount,
         "required_by": "${requiredBy.year.toString().padLeft(4, '0')}-${requiredBy.month.toString().padLeft(2, '0')}-${requiredBy.day.toString().padLeft(2, '0')}",
     };

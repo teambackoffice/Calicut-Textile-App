@@ -17,21 +17,25 @@ class PurchaseOrderItem {
   String itemCode;
   String itemName;
   int quantity;
+  int? pcs;           // Added pcs field
+  double? netQty;     // Added netQty field
   double rate;
   String color;
   double amount;
   String uom;
-  int imageCount; // Added image count field
+  int imageCount;
   
   PurchaseOrderItem({
     required this.itemCode,
     required this.itemName,
     required this.quantity,
+    this.pcs,           // Optional pcs
+    this.netQty,        // Optional netQty
     required this.rate,
     required this.color,
     required this.amount,
     required this.uom,
-    this.imageCount = 0, // Default to 0 images
+    this.imageCount = 0,
   });
   
   double get total => quantity * rate;
@@ -143,63 +147,67 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
 
   // Add these imports at the top of your file
 void _handleItemCreated(Item item) {
-   
-    
-    setState(() {
-      items.add(PurchaseOrderItem(
-        itemCode: item.code,
-        itemName: item.name,
-        quantity: item.quantity?.toInt() ?? 1,
-        rate: item.rate ?? 0.0,
-        color: item.color ?? '',
-        uom: item.selectedUOM!,
-        imageCount: 0, amount: (item.rate)! * (item.quantity!),
- // You can update this based on images if needed
-      ));
-    });
-    
-    
-    // Show success message on the main page
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '${item.name} added to purchase order',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
+  setState(() {
+    items.add(PurchaseOrderItem(
+      itemCode: item.code,
+      itemName: item.name,
+      quantity: item.quantity?.toInt() ?? 1,
+      pcs: item.pcs,                    // Pass pcs value
+      netQty: item.netQty,              // Pass netQty value
+      rate: item.rate ?? 0.0,
+      color: item.color ?? '',
+      uom: item.selectedUOM,
+      imageCount: 0,
+      amount: (item.rate ?? 0.0) * (item.quantity ?? 1),
+    ));
+  });
+  
+  // Show success message
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(Icons.check_circle, color: Colors.white, size: 20),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${item.name} added to purchase order',
+              style: TextStyle(fontWeight: FontWeight.w500),
             ),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ],
       ),
-    );
-  }
+      backgroundColor: Colors.green,
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+  );
+}
 
 // Modified _addItem function
 void _addItem() async {
-     final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
+  final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
 
   if (_formKey.currentState!.validate()) {
-    // Show loading indicator
-   
-
     try {
+      // Calculate netQty if needed
+      final qty = double.tryParse(_quantityController.text) ?? 0;
+      final pcs = int.tryParse(_pcsController.text) ?? 0;
+      final calculatedNetQty = qty * pcs;
+
       // Create Product object for API call
       final product = Product(
         productName: _itemNameController.text,
         qty: _quantityController.text,
+        pcs: _pcsController.text,              // Include pcs
+        netQty: calculatedNetQty.toString(),   // Include calculated netQty
         rate: _rateController.text,
         amount: (int.parse(_quantityController.text) * double.parse(_rateController.text)).toString(),
         color: _colorController.text,
         uom: _selectedUOM,
-        imagePaths: _selectedImagePaths, api_key: apiKey, // Add this list to store selected image paths
+        imagePaths: _selectedImagePaths,
+        api_key: apiKey,
       );
      
       // Call the API service
@@ -215,10 +223,13 @@ void _addItem() async {
             itemCode: _itemCodeController.text,
             itemName: _itemNameController.text,
             quantity: int.parse(_quantityController.text),
+            pcs: int.tryParse(_pcsController.text),          // Include pcs
+            netQty: calculatedNetQty,                        // Include netQty
             rate: double.parse(_rateController.text),
             color: _colorController.text,
             uom: _selectedUOM,
-            imageCount: _selectedImageCount, amount: (int.parse(_quantityController.text))! * (double.parse(_rateController.text)),
+            imageCount: _selectedImageCount,
+            amount: (int.parse(_quantityController.text)) * (double.parse(_rateController.text)),
           ));
         });
 
@@ -228,11 +239,8 @@ void _addItem() async {
         // Close the dialog/page
         Navigator.pop(context);
         
-        // Show success message (already handled in service)
-        
       } else if (success == null) {
-        // Specific error occurred (handled in service with snackbar)
-        // Keep the form open for user to retry
+        // Handle specific error
       } else {
         // General failure
         ScaffoldMessenger.of(context).showSnackBar(
@@ -250,9 +258,6 @@ void _addItem() async {
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      // Hide loading indicator
-      
     }
   }
 }

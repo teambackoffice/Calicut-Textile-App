@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 // Model class for Item
+// Updated Item class with pcs and netQty
 class Item {
   final String code;
   final String name;
@@ -15,6 +16,8 @@ class Item {
   final String selectedUOM;
   final double? rate;
   final double? quantity;
+  final int? pcs;        // Already exists
+  final double? netQty;  // Changed from int? to double?
   final String? image1;
   final String? image2;
   final String? image3;
@@ -26,20 +29,24 @@ class Item {
     this.selectedUOM = '',
     this.rate,
     this.quantity,
+    this.pcs,
+    this.netQty,
     this.image1,
     this.image2,
     this.image3,
   });
 
-  // Add this factory constructor
+  // Updated factory constructor
   factory Item.fromDatum(Datum datum) {
     return Item(
-      code: datum.name, // Using 'name' as code from API
+      code: datum.name,
       name: datum.productName,
       color: datum.color,
       selectedUOM: datum.uom,
       rate: datum.rate,
       quantity: datum.quantity,
+      pcs: datum.pcs,      // Add this if exists in Datum
+      netQty: datum.netQty, // Add this if exists in Datum
       image1: datum.image1,
       image2: datum.image2,
       image3: datum.image3,
@@ -100,9 +107,25 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
    List<String> _selectedImagePaths = [];
   final ImagePicker _imagePicker = ImagePicker();
 
+  final TextEditingController netQtyController = TextEditingController();
+  void _calculateNetQty() {
+  final qty = double.tryParse(widget.quantityController.text);
+  final pcs = double.tryParse(widget.pcsController.text);
+
+  if (qty != null && pcs != null) {
+    final result = qty * pcs;
+    netQtyController.text = result.toStringAsFixed(2);
+  } else {
+    netQtyController.text = '';
+  }
+}
+
+
   @override
   void initState() {
     super.initState();
+    widget.quantityController.addListener(_calculateNetQty);
+  widget.pcsController.addListener(_calculateNetQty);
      _selectedUOM = null;
     
     // Add listeners to calculate total amount
@@ -111,15 +134,30 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
      _loadProducts();
   }
 
-   void _addSearchItemDirectly(Item item) {
-    // 1. Send data back to parent page via callback
-    widget.onItemCreated(item);
-    
-    // 2. Close the dialog (returns to CreatePurchaseOrder)
-    Navigator.pop(context);
-    
-    // 3. The CreatePurchaseOrder page now shows the added item!
-  }
+   // Updated _addSearchItemDirectly method in DialogBoxItems
+void _addSearchItemDirectly(Item item) {
+  // Create a new item with current form values for pcs and netQty
+  final updatedItem = Item(
+    code: item.code,
+    name: item.name,
+    color: item.color,
+    selectedUOM: item.selectedUOM,
+    rate: item.rate,
+    quantity: item.quantity,
+    pcs: int.tryParse(widget.pcsController.text), // Get from form
+    netQty: double.tryParse(netQtyController.text), // Get from calculated field
+    image1: item.image1,
+    image2: item.image2,
+    image3: item.image3,
+  );
+  
+  // Send updated data back to parent page via callback
+  widget.onItemCreated(updatedItem);
+  
+  // Close the dialog
+  Navigator.pop(context);
+}
+
 
   Future<void> _loadProducts() async {
   setState(() {
@@ -338,19 +376,28 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   }
 
   void _selectItem(Item item) {
-    setState(() {
-      _selectedItem = item;
-      _isCreatingNew = false;
-      widget.itemCodeController.text = item.code;
-      widget.itemNameController.text = item.name;
-      widget.colorController.text = item.color ?? '';
-      // Clear quantity and rate when selecting new item
-      widget.quantityController.clear();
-      widget.rateController.clear();
-      _totalAmount = 0.0;
-    });
-  }
-
+  setState(() {
+    _selectedItem = item;
+    _isCreatingNew = false;
+    widget.itemCodeController.text = item.code;
+    widget.itemNameController.text = item.name;
+    widget.colorController.text = item.color ?? '';
+    
+    // Set pcs and quantity if available
+    if (item.pcs != null) {
+      widget.pcsController.text = item.pcs.toString();
+    }
+    if (item.quantity != null) {
+      widget.quantityController.text = item.quantity.toString();
+    }
+    
+    widget.rateController.clear();
+    _totalAmount = 0.0;
+    
+    // Trigger calculation after setting values
+    _calculateNetQty();
+  });
+}
   void _createNewItem() {
     setState(() {
       _isCreatingNew = true;
@@ -359,6 +406,8 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
       widget.itemNameController.clear();
       widget.colorController.clear();
       widget.quantityController.clear();
+      widget.pcsController.clear();
+      widget.rateController.clear();
       widget.rateController.clear();
       _totalAmount = 0.0;
       _selectedImages.clear(); // Clear images when creating new item
@@ -630,7 +679,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Rate',
+                            'PCS',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -639,7 +688,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                           ),
                           const SizedBox(height: 8),
                           TextFormField(
-                            controller: widget.rateController,
+                            controller: widget.pcsController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             validator: (value) {
                               if (value?.isEmpty == true) return 'Required';
@@ -648,7 +697,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                               return null;
                             },
                             decoration: InputDecoration(
-                              hintText: '0.00',
+                              hintText: '0',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -662,12 +711,12 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
+                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'UOM',
+                            'Net QTY',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -675,33 +724,11 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-  isExpanded: true, // 🔐 Prevents overflow
-  value: _selectedUOM,
-  hint: const Text(
-    'Select UOM',
-    overflow: TextOverflow.ellipsis, // Optional: helps clip long hint
-    style: TextStyle(color: Colors.grey),
-  ),
-  onChanged: (value) {
-    print(_selectedUOM);
-    setState(() {
-      _selectedUOM = value;
-    });
-    if (widget.onUOMSelected != null && value != null) {
-      widget.onUOMSelected!(value);
-    }
-  },
-  items: widget.UomOptions.map((uom) {
-    return DropdownMenuItem<String>(
-      value: uom,
-      child: Text(
-        uom,
-        overflow: TextOverflow.ellipsis, // Optional: handles long UOM names
-      ),
-    );
-  }).toList(),
+                          TextFormField(
+  controller: netQtyController,
+  readOnly: true, // Prevent manual editing
   decoration: InputDecoration(
+    hintText: '0',
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
     ),
@@ -710,17 +737,81 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
       vertical: 20,
     ),
   ),
-)
+),
+SizedBox(height: 10,),
+
 
                         ],
                       ),
                     ),
+                    
+                   
                   ],
                 ),
 
                 const SizedBox(height: 24),
 
                 if (_isCreatingNew) ...[
+                   Row(
+                     children: [
+                       Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'UOM',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                         isExpanded: true, // 🔐 Prevents overflow
+                         value: _selectedUOM,
+                         hint: const Text(
+                           'Select UOM',
+                           overflow: TextOverflow.ellipsis, // Optional: helps clip long hint
+                           style: TextStyle(color: Colors.grey),
+                         ),
+                         onChanged: (value) {
+                           print(_selectedUOM);
+                           setState(() {
+                             _selectedUOM = value;
+                           });
+                           if (widget.onUOMSelected != null && value != null) {
+                             widget.onUOMSelected!(value);
+                           }
+                         },
+                         items: widget.UomOptions.map((uom) {
+                           return DropdownMenuItem<String>(
+                             value: uom,
+                             child: Text(
+                               uom,
+                               overflow: TextOverflow.ellipsis, // Optional: handles long UOM names
+                             ),
+                           );
+                         }).toList(),
+                         decoration: InputDecoration(
+                           border: OutlineInputBorder(
+                             borderRadius: BorderRadius.circular(16),
+                           ),
+                           contentPadding: const EdgeInsets.symmetric(
+                             horizontal: 16,
+                             vertical: 20,
+                           ),
+                         ),
+                       )
+                       
+                            ],
+                          ),
+                        ),
+                     ],
+                   ),
+                    const SizedBox(height: 24),
+                  
+
                   Text(
                     'Color (Optional)',
                     style: TextStyle(
@@ -843,6 +934,9 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   @override
   void dispose() {
     _searchController.dispose();
+    widget.quantityController.removeListener(_calculateNetQty);
+  widget.pcsController.removeListener(_calculateNetQty);
+  netQtyController.dispose();
     widget.quantityController.removeListener(_calculateTotal);
     widget.rateController.removeListener(_calculateTotal);
     super.dispose();

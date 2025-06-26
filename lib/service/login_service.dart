@@ -20,12 +20,14 @@ class LoginService {
         final responseData = jsonDecode(response.body);
         final fullName = responseData['full_name'];
         final api_key = responseData['message']['api_key'];
+        final sid = responseData['message']['sid'];
 
         
           
           // Store full_name in secure storage
           await _secureStorage.write(key: 'full_name', value: fullName);
           await _secureStorage.write(key: 'api_key', value: api_key);
+          await _secureStorage.write(key: 'sid', value: sid);
           
         // Assuming your API returns { "message": "Logged in Successfully" }
         // You can customize this condition based on your API response structure

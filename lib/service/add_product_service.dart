@@ -16,6 +16,7 @@ class ProductService {
     required BuildContext context,
   }) async {
     final uri = Uri.parse(baseUrl);
+    print(uri);
      // Get API key from secure storage
     final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
     
@@ -86,6 +87,7 @@ for (var file in request.files) {
         return null;
       }
     } catch (e) {
+      print('Error creating product: $e');
       
       _showSnackbar(context, 'Network error: ${e.toString()}', Colors.red);
       return null;
