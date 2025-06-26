@@ -108,6 +108,7 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   final _itemCodeController = TextEditingController();
   final _itemNameController = TextEditingController();
   final _quantityController = TextEditingController();
+  final _pcsController = TextEditingController();
   final _rateController = TextEditingController();
   final _colorController = TextEditingController();
 
@@ -319,7 +320,8 @@ void _clearForm() {
                         itemCodeController: _itemCodeController, 
                         itemNameController: _itemNameController, 
                         quantityController: _quantityController, 
-                        rateController: _rateController, 
+                        rateController: _rateController,
+                        pcsController: _pcsController, 
                         colorController: _colorController,
                         UomOptions: _uomOptions,
                         onUOMSelected: _updateSelectedUOM,

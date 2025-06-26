@@ -183,7 +183,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                'Supplier: ${order.supplier}',
+                                                'Supplier: ${order.supplierName}',
                                                 style: const TextStyle(
                                                   fontSize: 14,
                                                   color: Color(0xFF64748B),

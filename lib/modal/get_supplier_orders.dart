@@ -59,6 +59,7 @@ class Message {
 class Order {
   String orderId;
   String supplier;
+  String supplierName;
   DateTime orderDate;
   double grandTotal;
   String status;
@@ -67,6 +68,7 @@ class Order {
   Order({
     required this.orderId,
     required this.supplier,
+    required this.supplierName,
     required this.orderDate,
     required this.grandTotal,
     required this.status,
@@ -75,7 +77,8 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) => Order(
         orderId: json["order_id"],
-        supplier: json["supplier"],
+        supplier: json["supplier_id"],
+        supplierName: json["supplier_name"],
         orderDate: DateTime.parse(json["order_date"]),
         grandTotal: json["grand_total"],
         status: json["status"],

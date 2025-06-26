@@ -63,13 +63,14 @@ class DialogBoxItems extends StatefulWidget {
     required this.onItemCreated,
     this.onUOMSelected,
     this.onImageCountChanged, 
-    this.onImagesSelected,// Add this callback
+    this.onImagesSelected, required this.pcsController,// Add this callback
   });
 
   final GlobalKey<FormState> formKey;
   final TextEditingController itemCodeController;
   final TextEditingController itemNameController;
   final TextEditingController quantityController;
+  final TextEditingController pcsController;
   final TextEditingController rateController;
   final TextEditingController colorController;
   final List<Item>? existingItems;
