@@ -657,32 +657,32 @@ _buildFormField(
                 ),
 
                 // UOM (for new items)
-                if (_isCreatingNew) ...[
-                  _buildFormField(
-                    label: 'Unit of Measurement *',
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      value: _selectedUOM,
-                      hint: const Text('Select UOM'),
-                      validator: (value) => value == null ? 'Please select UOM' : null,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedUOM = value;
-                        });
-                        if (widget.onUOMSelected != null && value != null) {
-                          widget.onUOMSelected!(value);
-                        }
-                      },
-                      items: widget.UomOptions.map((uom) {
-                        return DropdownMenuItem<String>(
-                          value: uom,
-                          child: Text(uom),
-                        );
-                      }).toList(),
-                      decoration: _getInputDecoration('Select UOM'),
-                    ),
-                  ),
-                ],
+                // if (_isCreatingNew) ...[
+                //   _buildFormField(
+                //     label: 'Unit of Measurement *',
+                //     child: DropdownButtonFormField<String>(
+                //       isExpanded: true,
+                //       value: _selectedUOM,
+                //       hint: const Text('Select UOM'),
+                //       validator: (value) => value == null ? 'Please select UOM' : null,
+                //       onChanged: (value) {
+                //         setState(() {
+                //           _selectedUOM = value;
+                //         });
+                //         if (widget.onUOMSelected != null && value != null) {
+                //           widget.onUOMSelected!(value);
+                //         }
+                //       },
+                //       items: widget.UomOptions.map((uom) {
+                //         return DropdownMenuItem<String>(
+                //           value: uom,
+                //           child: Text(uom),
+                //         );
+                //       }).toList(),
+                //       decoration: _getInputDecoration('Select UOM'),
+                //     ),
+                //   ),
+                // ],
 
                 // Color (optional)
                 _buildFormField(

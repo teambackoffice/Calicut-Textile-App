@@ -232,23 +232,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                // const Text(
-                                                //   'Outstanding',
-                                                //   style: TextStyle(
-                                                //     fontSize: 12,
-                                                //     color: Color(0xFF64748B),
-                                                //     fontWeight: FontWeight.w500,
-                                                //   ),
-                                                // ),
+                                                
                                                 const SizedBox(height: 4),
-                                                // Text(
-                                                //   '₹${order.outstandingAmount?.toStringAsFixed(2) ?? '0.00'}',
-                                                //   style: const TextStyle(
-                                                //     fontSize: 18,
-                                                //     fontWeight: FontWeight.bold,
-                                                //     color: Color(0xFFEF4444),
-                                                //   ),
-                                                // ),
+                                               
                                               ],
                                             ),
                                           ),

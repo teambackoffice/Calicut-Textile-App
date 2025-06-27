@@ -95,20 +95,22 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   DateTime? _selectedDate;
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
+  final DateTime today = DateTime.now();
+  final DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: _selectedDate ?? today,
+    firstDate: DateTime(today.year, today.month, today.day), // disallow past dates
+    lastDate: DateTime(2100),
+  );
 
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        requireddatecontroller.text = DateFormat('yyyy-MM-dd').format(picked);
-      });
-    }
+  if (picked != null && picked != _selectedDate) {
+    setState(() {
+      _selectedDate = picked;
+      requireddatecontroller.text = DateFormat('yyyy-MM-dd').format(picked);
+    });
   }
+}
+
 
   final List<PurchaseOrderItem> items = [];
   final _formKey = GlobalKey<FormState>();

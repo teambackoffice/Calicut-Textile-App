@@ -232,16 +232,20 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
   }
 
   Future<void> _selectDate(TextEditingController controller) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-    );
-    if (picked != null) {
-      controller.text = "${picked.day}/${picked.month}/${picked.year}";
-    }
+  final DateTime today = DateTime.now();
+
+  final DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: today,
+    firstDate: DateTime(today.year, today.month, today.day), // Prevent past dates
+    lastDate: DateTime(2030),
+  );
+
+  if (picked != null) {
+    controller.text = "${picked.day}/${picked.month}/${picked.year}";
   }
+}
+
 
   bool _validateAllFields() {
     // Check if form validation passes

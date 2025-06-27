@@ -8,9 +8,6 @@ import 'package:http/http.dart' as http;
 class ProductService {
   static const String baseUrl = 'https://calicuttextiles.tbo365.cloud/api/method/calicut_textiles.api.auth.create_product';
   
-
-  
-
   static Future<bool?> createProduct({
     required Product product,
     required BuildContext context,
@@ -20,21 +17,18 @@ class ProductService {
      // Get API key from secure storage
     final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
     
-   
-   
-    
     final jsonmodel = jsonEncode(product.toMap());
-    
     
     try {
       var request = http.MultipartRequest('POST', uri)
-      
         ..fields['product_name'] = product.productName
         ..fields['qty'] = product.qty
         ..fields['rate'] = product.rate
         ..fields['amount'] = product.amount
         ..fields['color'] = product.color!
         ..fields['uom'] = product.uom
+        ..fields['pcs'] = product.pcs ?? '0'  // Added pcs field
+        ..fields['net_qty'] = product.netQty ?? '0'  // Added net_qty field
         ..fields['api_key'] = product.api_key!;
 
       // Add image files
@@ -48,24 +42,36 @@ class ProductService {
           );
         }
       }
+      
       print('Request Fields:');
-request.fields.forEach((key, value) {
- 
-});
+      request.fields.forEach((key, value) {
+        print('$key: $value');
+      });
 
-print('Attached Files:');
-for (var file in request.files) {
-
-}
+      print('Attached Files:');
+      for (var file in request.files) {
+        print('Field: ${file.field}, Filename: ${file.filename}');
+      }
 
       final response = await request.send();
-      final responseBody = await response.stream.bytesToString();
+      print('--- REQUEST DEBUG INFO ---');
+      print('URL: ${request.url}');
+      print('METHOD: ${request.method}');
+      print('HEADERS: ${request.headers}');
+      print('FIELDS:');
+      request.fields.forEach((key, value) {
+        print('$key: $value');
+      });
+      print('FILES:');
+      for (var file in request.files) {
+        print('Field: ${file.field}, Filename: ${file.filename}, ContentType: ${file.contentType}, Length: ${file.length}');
+      }
+      print('--------------------------');
       
-     
+      final responseBody = await response.stream.bytesToString();
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        log("response.body : $response.body");
-        
+        log("response.body : $responseBody");  // Fixed: was printing response.body instead of responseBody
         return true;
       } else if (response.statusCode == 400) {
         final result = jsonDecode(responseBody);
@@ -88,7 +94,6 @@ for (var file in request.files) {
       }
     } catch (e) {
       print('Error creating product: $e');
-      
       _showSnackbar(context, 'Network error: ${e.toString()}', Colors.red);
       return null;
     }
