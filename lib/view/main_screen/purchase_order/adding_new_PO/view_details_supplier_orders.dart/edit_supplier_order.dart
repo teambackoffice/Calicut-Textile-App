@@ -438,7 +438,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
             
             // Supplier Dropdown
             _buildSupplierDropdown(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 15),
             
             // Order Date
             _buildDateField(
