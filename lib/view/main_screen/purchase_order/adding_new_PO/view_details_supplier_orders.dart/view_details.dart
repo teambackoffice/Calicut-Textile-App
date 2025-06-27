@@ -245,24 +245,24 @@ class ViewDetailsSupplierOrder extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green[100],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    "₹${grandTotal.toStringAsFixed(2)}",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                ),
+                // Container(
+                //   padding: const EdgeInsets.symmetric(
+                //     horizontal: 12,
+                //     vertical: 6,
+                //   ),
+                //   decoration: BoxDecoration(
+                //     color: Colors.green[100],
+                //     borderRadius: BorderRadius.circular(20),
+                //   ),
+                //   child: Text(
+                //     "₹${grandTotal.toStringAsFixed(2)}",
+                //     style: TextStyle(
+                //       fontSize: 14,
+                //       fontWeight: FontWeight.bold,
+                //       color: Colors.green[700],
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -317,10 +317,19 @@ class ViewDetailsSupplierOrder extends StatelessWidget {
                         Colors.green,
                       ),
                     ),
-                    Expanded(
+                  order!.products.length == 1 ? Expanded(
                       child: _buildDetailItem(
                         "Total",
                         "₹${grandTotal.toStringAsFixed(2)}",
+                        Icons.calculate,
+                        Colors.red,
+                      ),
+                    ):
+                  
+                   Expanded(
+                      child: _buildDetailItem(
+                        "Total",
+                        "₹${item.amount.toStringAsFixed(2)}",
                         Icons.calculate,
                         Colors.red,
                       ),

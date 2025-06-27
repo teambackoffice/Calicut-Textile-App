@@ -47,6 +47,29 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     _loadData();
   }
 
+  // Helper function to format numbers without unnecessary decimals
+  String _formatNumber(dynamic value) {
+    if (value == null) return '0';
+    
+    double doubleValue;
+    if (value is String) {
+      doubleValue = double.tryParse(value) ?? 0;
+    } else if (value is int) {
+      doubleValue = value.toDouble();
+    } else if (value is double) {
+      doubleValue = value;
+    } else {
+      return '0';
+    }
+    
+    // If it's a whole number, return without decimal
+    if (doubleValue == doubleValue.roundToDouble()) {
+      return doubleValue.round().toString();
+    } else {
+      return doubleValue.toString();
+    }
+  }
+
   void _initializeData() {
     // Create a copy of the order to edit
     _editedOrder = OrderModel.Order(
@@ -75,18 +98,18 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     _selectedSupplierId = _editedOrder.supplier;
     _selectedSupplierName = _editedOrder.supplierName;
 
-    // Initialize product controllers
+    // Initialize product controllers with proper number formatting
     _productControllers = _editedOrder.products.map((product) {
       return ProductControllers(
         productController: TextEditingController(text: product.product),
-        quantityController: TextEditingController(text: product.quantity.toString()),
+        quantityController: TextEditingController(text: _formatNumber(product.quantity)),
         rateController: TextEditingController(text: product.rate.toString()),
-        pcsController: TextEditingController(text: product.pcs.toString()),
-        netQtyController: TextEditingController(text: product.netQty.toString()),
+        pcsController: TextEditingController(text: _formatNumber(product.pcs)),
+        netQtyController: TextEditingController(text: _formatNumber(product.netQty)),
         amountController: TextEditingController(text: product.amount.toString()),
         requiredByController: TextEditingController(
             text: "${product.requiredBy.day}/${product.requiredBy.month}/${product.requiredBy.year}"),
-        selectedUom: product.uom!,
+        selectedUom: product.uom ?? OrderModel.Uom.UNIT,
         selectedProductName: product.product,
       );
     }).toList();
@@ -94,7 +117,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     // Ensure calculations are correct on initialization
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (int i = 0; i < _productControllers.length; i++) {
-        _calculateNetQtyFromQtyAndPcs(i);
+        _calculateAmount(i); // Calculate amount based on existing values
       }
     });
   }
@@ -155,11 +178,11 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
 
   void _calculateNetQtyFromQtyAndPcs(int index) {
     final quantity = double.tryParse(_productControllers[index].quantityController.text) ?? 0;
-    final pcs = int.tryParse(_productControllers[index].pcsController.text) ?? 0;
+    final pcs = double.tryParse(_productControllers[index].pcsController.text) ?? 0;
     
-    // Calculate net_qty = qty * pcs (this is just a helper calculation)
+    // Calculate net_qty = qty * pcs
     final netQty = quantity * pcs;
-    _productControllers[index].netQtyController.text = netQty.toString();
+    _productControllers[index].netQtyController.text = _formatNumber(netQty);
     
     // Recalculate amount after net_qty changes
     _calculateAmount(index);
@@ -257,10 +280,10 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
           product: controller.productController.text,
           quantity: double.tryParse(controller.quantityController.text) ?? 0,
           uom: controller.selectedUom,
-          rate: double.tryParse(controller.rateController.text)!,
+          rate: double.tryParse(controller.rateController.text) ?? 0,
           pcs: double.tryParse(controller.pcsController.text),
-          netQty: double.tryParse(controller.netQtyController.text)!,
-          amount: double.tryParse(controller.amountController.text)!,
+          netQty: double.tryParse(controller.netQtyController.text) ?? 0,
+          amount: double.tryParse(controller.amountController.text) ?? 0,
           requiredBy: requiredDate,
         );
       }).toList();
@@ -274,7 +297,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
       if (result == true && mounted) {
         // Success is already handled in the service with snackbar
         Navigator.pop(context, true); 
-        Provider.of<SupplierOrderController>(context).loadSupplierOrders(); // Return true to indicate success
+        Provider.of<SupplierOrderController>(context, listen: false).loadSupplierOrders(); // Return true to indicate success
       } else if (result == null && mounted) {
         // Error is already handled in the service with snackbar
         // Stay on the page to allow user to try again
@@ -412,9 +435,6 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
             // Order ID (Read-only)
             _buildReadOnlyField('Order ID', widget.order.orderId),
             const SizedBox(height: 12),
-          
-          // Calculation Info Card
-          
             
             // Supplier Dropdown
             _buildSupplierDropdown(),
@@ -497,7 +517,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
             children: [
               Expanded(
                 child: Text(
-                  '',
+                  'Product ${index + 1}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1E293B),
@@ -527,6 +547,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
                   label: 'Quantity',
                   icon: Icons.straighten,
                   onChanged: (_) => _calculateNetQtyFromQtyAndPcs(index),
+                  isInteger: true,
                 ),
               ),
               const SizedBox(width: 12),
@@ -555,6 +576,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
                   label: 'PCS',
                   icon: Icons.inventory_2,
                   onChanged: (_) => _calculateNetQtyFromQtyAndPcs(index),
+                  isInteger: true,
                 ),
               ),
             ],
@@ -570,14 +592,14 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
                   label: 'Net Qty',
                   icon: Icons.balance,
                   onChanged: (_) => _onNetQtyChanged(index),
-                  // Net Qty is now editable
+                  isInteger: true,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildNumberFormField(
                   controller: _productControllers[index].amountController,
-                  label: 'Amount ',
+                  label: 'Amount',
                   icon: Icons.currency_rupee,
                   enabled: false, // Amount is calculated
                   backgroundColor: Colors.grey[100],
@@ -628,7 +650,6 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
                     value: product.name,
                     child: Text(product.name),
                   )),
-                   
                 ],
                 onChanged: (value) {
                   if (value == 'CREATE_NEW') {
@@ -650,7 +671,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
                     });
                     // Call calculate net qty after setState to update all calculations
                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _calculateNetQtyFromQtyAndPcs(index);
+                      _calculateAmount(index);
                     });
                   }
                 },
@@ -668,7 +689,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     String? validSelectedSupplier;
     if (_selectedSupplierId.isNotEmpty) {
       final supplierExists = _availableSuppliers.any(
-        (supplier) => supplier?.supplierName == _selectedSupplierId
+        (supplier) => supplier?.supplierId == _selectedSupplierId
       );
       if (supplierExists) {
         validSelectedSupplier = _selectedSupplierId;
@@ -677,8 +698,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
 
     return DropdownButtonFormField<String>(
       isExpanded: true,
-      
-      // value: widget.order.supplier,
+      value: validSelectedSupplier,
       decoration: InputDecoration(
         labelText: 'Supplier',
         prefixIcon: const Icon(Icons.business, color: Color(0xFF3B82F6)),
@@ -696,7 +716,6 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
               supplier.supplierName, // Display supplier name
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
-            
           ],
         ),
       )).toList(),
@@ -793,15 +812,18 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     required String label,
     required IconData icon,
     bool enabled = true,
+    bool isInteger = false,
     void Function(String)? onChanged,
     Color? backgroundColor,
   }) {
     return TextFormField(
       controller: controller,
       enabled: enabled,
-      keyboardType: TextInputType.number,
+      keyboardType: isInteger ? TextInputType.number : const TextInputType.numberWithOptions(decimal: true),
       onChanged: onChanged,
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+      inputFormatters: isInteger 
+          ? [FilteringTextInputFormatter.digitsOnly]
+          : [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: enabled ? const Color(0xFF3B82F6) : Colors.grey),
@@ -841,56 +863,34 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
   }
 
   Widget _buildUomDropdown(int index) {
-  final selected = _productControllers[index].selectedUom;
-  final selectedValue = selected == OrderModel.Uom.EMPTY ? null : selected;
+    final selected = _productControllers[index].selectedUom;
+    final selectedValue = selected == OrderModel.Uom.EMPTY ? null : selected;
 
-  return DropdownButtonFormField<OrderModel.Uom>(
-    isExpanded: true,
-    value: selectedValue,
-    decoration: InputDecoration(
-      labelText: 'UOM',
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-    ),
-    hint: const Text('Select UOM'),
-    items: OrderModel.Uom.values
-        .where((uom) => uom != OrderModel.Uom.EMPTY)
-        .map((uom) => DropdownMenuItem(
-              value: uom,
-              child: Text(_getUomDisplayText(uom)),
-            ))
-        .toList(),
-    onChanged: (value) {
-      setState(() {
-        _productControllers[index].selectedUom = value ?? OrderModel.Uom.EMPTY;
-      });
-    },
-  );
-}
-
-
-  Widget _buildStatusDropdown() {
-    final statuses = ['draft', 'converted', 'cancelled'];
-    return DropdownButtonFormField<String>(
-      value: _selectedStatus.toLowerCase(),
+    return DropdownButtonFormField<OrderModel.Uom>(
+      isExpanded: true,
+      value: selectedValue,
       decoration: InputDecoration(
-        labelText: 'Status',
-        prefixIcon: const Icon(Icons.flag, color: Color(0xFF3B82F6)),
+        labelText: 'UOM',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       ),
-      items: statuses
-          .map((status) => DropdownMenuItem(
-                value: status,
-                child: Text(status.toUpperCase()),
+      hint: const Text('Select UOM'),
+      items: OrderModel.Uom.values
+          .where((uom) => uom != OrderModel.Uom.EMPTY)
+          .map((uom) => DropdownMenuItem(
+                value: uom,
+                child: Text(_getUomDisplayText(uom)),
               ))
           .toList(),
       onChanged: (value) {
         setState(() {
-          _selectedStatus = value!;
+          _productControllers[index].selectedUom = value ?? OrderModel.Uom.EMPTY;
         });
       },
     );
   }
+
+ 
 
   Widget _buildReadOnlyField(String label, String value) {
     return Column(
@@ -938,7 +938,46 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
         return 'Nos';
       case OrderModel.Uom.UNIT:
         return 'Unit';
+      case OrderModel.Uom.BOX:
+        return 'Box';
+      case OrderModel.Uom.PAIR:
+        return 'Pair';
+      case OrderModel.Uom.SET:
+        return 'Set';
+      case OrderModel.Uom.METER:
+        return 'Meter';
+      case OrderModel.Uom.BARLEYCORN:
+        return 'Barleycorn';
+      case OrderModel.Uom.CALIBRE:
+        return 'Calibre';
+      case OrderModel.Uom.CABLE_LENGTH_UK:
+        return 'Cable Length (UK)';
+      case OrderModel.Uom.CABLE_LENGTH_US:
+        return 'Cable Length (US)';
+      case OrderModel.Uom.CABLE_LENGTH:
+        return 'Cable Length';
+      case OrderModel.Uom.CENTIMETER:
+        return 'Centimeter';
+      case OrderModel.Uom.CHAIN:
+        return 'Chain';
+      case OrderModel.Uom.DECIMETER:
+        return 'Decimeter';
+      case OrderModel.Uom.ELLS_UK:
+        return 'Ells (UK)';
+      case OrderModel.Uom.EMS_PICA:
+        return 'Ems(Pica)';
+      case OrderModel.Uom.FATHOM:
+        return 'Fathom';
+      case OrderModel.Uom.FOOT:
+        return 'Foot';
+      case OrderModel.Uom.FURLONG:
+        return 'Furlong';
+      case OrderModel.Uom.HAND:
+        return 'Hand';
+      case OrderModel.Uom.HECTOMETER:
+        return 'Hectometer';
       case OrderModel.Uom.EMPTY:
+      default:
         return '';
     }
   }
@@ -951,6 +990,14 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
         return OrderModel.Uom.NOS;
       case 'unit':
         return OrderModel.Uom.UNIT;
+      case 'box':
+        return OrderModel.Uom.BOX;
+      case 'pair':
+        return OrderModel.Uom.PAIR;
+      case 'set':
+        return OrderModel.Uom.SET;
+      case 'meter':
+        return OrderModel.Uom.METER;
       default:
         return OrderModel.Uom.UNIT;
     }
@@ -1137,4 +1184,3 @@ class _CreateProductDialogState extends State<CreateProductDialog> {
     );
   }
 }
-             

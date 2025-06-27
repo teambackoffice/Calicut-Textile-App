@@ -100,18 +100,57 @@ class UpdateSupplierOrderService {
     }
   }
 
-  static String _getUomString(OrderModel.Uom uom) {
-    switch (uom) {
-      case OrderModel.Uom.KG:
-        return 'Kg';
-      case OrderModel.Uom.NOS:
-        return 'Nos';
-      case OrderModel.Uom.UNIT:
-        return 'Unit';
-      case OrderModel.Uom.EMPTY:
-        return '';
-    }
+ static String _getUomString(OrderModel.Uom uom) {
+  switch (uom) {
+    case OrderModel.Uom.KG:
+      return 'Kg';
+    case OrderModel.Uom.NOS:
+      return 'Nos';
+    case OrderModel.Uom.UNIT:
+      return 'Unit';
+    case OrderModel.Uom.BOX:
+      return 'Box';
+    case OrderModel.Uom.PAIR:
+      return 'Pair';
+    case OrderModel.Uom.SET:
+      return 'Set';
+    case OrderModel.Uom.METER:
+      return 'Meter';
+    case OrderModel.Uom.BARLEYCORN:
+      return 'Barleycorn';
+    case OrderModel.Uom.CALIBRE:
+      return 'Calibre';
+    case OrderModel.Uom.CABLE_LENGTH_UK:
+      return 'Cable Length (UK)';
+    case OrderModel.Uom.CABLE_LENGTH_US:
+      return 'Cable Length (US)';
+    case OrderModel.Uom.CABLE_LENGTH:
+      return 'Cable Length';
+    case OrderModel.Uom.CENTIMETER:
+      return 'Centimeter';
+    case OrderModel.Uom.CHAIN:
+      return 'Chain';
+    case OrderModel.Uom.DECIMETER:
+      return 'Decimeter';
+    case OrderModel.Uom.ELLS_UK:
+      return 'Ells (UK)';
+    case OrderModel.Uom.EMS_PICA:
+      return 'Ems(Pica)';
+    case OrderModel.Uom.FATHOM:
+      return 'Fathom';
+    case OrderModel.Uom.FOOT:
+      return 'Foot';
+    case OrderModel.Uom.FURLONG:
+      return 'Furlong';
+    case OrderModel.Uom.HAND:
+      return 'Hand';
+    case OrderModel.Uom.HECTOMETER:
+      return 'Hectometer';
+    case OrderModel.Uom.EMPTY:
+    default:
+      return '';
   }
+}
 
   static void _showSnackbar(BuildContext context, String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(

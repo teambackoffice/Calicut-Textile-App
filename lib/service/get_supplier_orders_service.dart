@@ -28,7 +28,7 @@ class SupplierOrderListService {
       }
     } catch (e) {
       print('Error fetching supplier orders: $e');
-      throw Exception('Error fetching supplier orders: $e');
+      return [];
     }
   }
 }

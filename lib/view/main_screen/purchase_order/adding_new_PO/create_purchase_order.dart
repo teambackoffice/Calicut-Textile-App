@@ -52,11 +52,32 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   String selectedSupplier = 'Select Suppliers';
   String _selectedUOM = '';
   int _selectedImageCount = 0; // Track image count from dialog
-  final List<String> _uomOptions = ['unit', 'box', 'pair', 'set', 'meter', 'foot','kg','cm'];
-
+  final List<String> _uomOptions = ['EMPTY',
+  'KG',
+  'NOS',
+  'UNIT',
+  'BOX',
+  'PAIR',
+  'SET',
+  'METER',
+  'BARLEYCORN',
+  'CALIBRE',
+  'CABLE_LENGTH_UK',
+  'CABLE_LENGTH_US',
+  'CABLE_LENGTH',
+  'CENTIMETER',
+  'CHAIN',
+  'DECIMETER',
+  'ELLS_UK',
+  'EMS_PICA',
+  'FATHOM',
+  'FOOT',
+  'FURLONG',
+  'HAND',
+  'HECTOMETER',];
   // Add loading state variable
   bool _isAddingItem = false;
-  
+
   List<String> _selectedImagePaths = [];
 
   void _handleImagesSelected(List<String> imagePaths) {

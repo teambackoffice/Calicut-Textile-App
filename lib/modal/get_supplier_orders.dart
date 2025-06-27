@@ -143,11 +143,31 @@ class Product {
 }
 
 enum Uom {
-    EMPTY,
-    KG,
-    NOS,
-    UNIT
+  EMPTY,
+  KG,
+  NOS,
+  UNIT,
+  BOX,
+  PAIR,
+  SET,
+  METER,
+  BARLEYCORN,
+  CALIBRE,
+  CABLE_LENGTH_UK,
+  CABLE_LENGTH_US,
+  CABLE_LENGTH,
+  CENTIMETER,
+  CHAIN,
+  DECIMETER,
+  ELLS_UK,
+  EMS_PICA,
+  FATHOM,
+  FOOT,
+  FURLONG,
+  HAND,
+  HECTOMETER,
 }
+
 
 final uomValues = EnumValues({
     "": Uom.EMPTY,

@@ -162,8 +162,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                 children: [
                                                   Text(
-                                                    order.products.isNotEmpty ? order.products.first.product : 'No Product'
-                  ,
+                                                   '${order.supplierName}',
                                                     style: const TextStyle(
                                                       fontSize: 16,
                                                       fontWeight: FontWeight.bold,
@@ -188,15 +187,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                                                   ),
                                                 ],
                                               ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'Supplier: ${order.supplierName}',
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  color: Color(0xFF64748B),
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
+                                              
                                             ],
                                           ),
                                         ),
