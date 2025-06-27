@@ -438,7 +438,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
             
             // Supplier Dropdown
             _buildSupplierDropdown(),
-            const SizedBox(height: 15),
+            const SizedBox(height: 12),
             
             // Order Date
             _buildDateField(
@@ -449,7 +449,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
             const SizedBox(height: 12),
             
             // Status Dropdown
-           
+            _buildStatusDropdown(),
           ],
         ),
       ),
@@ -890,7 +890,28 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     );
   }
 
- 
+  Widget _buildStatusDropdown() {
+    final statuses = ['draft', 'converted', 'cancelled'];
+    return DropdownButtonFormField<String>(
+      value: _selectedStatus.toLowerCase(),
+      decoration: InputDecoration(
+        labelText: 'Status',
+        prefixIcon: const Icon(Icons.flag, color: Color(0xFF3B82F6)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      items: statuses
+          .map((status) => DropdownMenuItem(
+                value: status,
+                child: Text(status.toUpperCase()),
+              ))
+          .toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedStatus = value!;
+        });
+      },
+    );
+  }
 
   Widget _buildReadOnlyField(String label, String value) {
     return Column(
