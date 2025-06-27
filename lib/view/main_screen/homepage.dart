@@ -61,9 +61,15 @@ void logout() async {
   automaticallyImplyLeading: false,
   backgroundColor: Colors.transparent,
   elevation: 0,
-  title: Text(
-    "Calicut Textiles",
-    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+  title: Row(
+    children: [ 
+      Image.asset("assets/calicutlogo.png",height: 50,width: 50,),
+      const SizedBox(width: 100),
+      Text(
+        "Calicut Textiles",
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+      ),
+    ],
   ),
   actions: [
     IconButton(
@@ -95,93 +101,11 @@ void logout() async {
                ],
              ),
              
-            const SizedBox(height: 20),
+            const SizedBox(height: 250),
             
             // Sales Summary Card
-            Container(height: 220
-            ,
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF6B73FF),
-                    Color(0xFF4CAF50),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Total Sale Amount',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const Text(
-                          '29189.09',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Total Due Amount',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const Text(
-                          '14982.20',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Total Sale Count',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const Text(
-                          '25',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  // Percentage Circle
-                  
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(" Supplier Orders and Suppliers",style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold),),
-             const SizedBox(height: 24),
-            
+           
+           
             
             Expanded(
               child: GridView.count(

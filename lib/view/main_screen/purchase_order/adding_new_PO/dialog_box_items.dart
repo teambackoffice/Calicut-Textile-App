@@ -740,28 +740,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                   ),
                 ),
 
-                // Add Item Button
-                // Container(
-                //   width: double.infinity,
-                //   child: ElevatedButton(
-                //     onPressed: _isCreatingNew ? _addCurrentItem : null, // Only enabled for new items
-                //     style: ElevatedButton.styleFrom(
-                //       backgroundColor: _isCreatingNew ? Colors.blue : Colors.grey[300],
-                //       foregroundColor: _isCreatingNew ? Colors.white : Colors.grey[600],
-                //       padding: EdgeInsets.symmetric(vertical: 16),
-                //       shape: RoundedRectangleBorder(
-                //         borderRadius: BorderRadius.circular(12),
-                //       ),
-                //     ),
-                //     child: Text(
-                //       'Add Item',
-                //       style: TextStyle(
-                //         fontSize: 16,
-                //         fontWeight: FontWeight.w600,
-                //       ),
-                //     ),
-                //   ),
-                // ),
+               
               ],
             ],
           ),

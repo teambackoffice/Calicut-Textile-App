@@ -284,15 +284,15 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
                           ),
                         );
                       } else if (value == 'View Details') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ViewDetailsSupplierOrder(
-                              product: order.products,
-                              orders: controller.orders,
-                            ),
-                          ),
-                        );
+                       Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => ViewDetailsSupplierOrder(
+      product: order.products,
+      order: order, // ✅ Pass single order object, not a list
+    ),
+  ),
+);
                       }
                     },
                     itemBuilder: (BuildContext context) {

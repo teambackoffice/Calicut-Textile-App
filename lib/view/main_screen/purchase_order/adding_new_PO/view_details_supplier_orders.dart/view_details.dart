@@ -3,19 +3,22 @@ import 'package:calicut_textile_app/modal/get_supplier_orders.dart';
 
 class ViewDetailsSupplierOrder extends StatelessWidget {
   final List<Product> product;
-  final List<Order> orders;
+  final Order? order;
+  final List<Order>? orders;
 
   const ViewDetailsSupplierOrder({
     super.key,
     required this.product,
-    required this.orders,
+     this.order,
+     this.orders,
   });
 
   @override
   Widget build(BuildContext context) {
     // Get grand total from order
-    double grandTotal = orders.isNotEmpty ? (orders.first.grandTotal ?? 0) : 0;
+   double grandTotal = order!.grandTotal ?? 0; // ✅ Use the specific order
     int totalItems = product.length;
+    
     
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -52,7 +55,7 @@ class ViewDetailsSupplierOrder extends StatelessWidget {
           : Column(
               children: [
                 // Order Summary Header
-                if (orders.isNotEmpty) _buildOrderSummary(orders.first),
+                  _buildOrderSummary(order!), 
                 
                 // Products List
                 Expanded(
@@ -128,7 +131,7 @@ class ViewDetailsSupplierOrder extends StatelessWidget {
               Expanded(
                 child: _buildSummaryItem(
                   "Date",
-              order.orderDate?.toString().split(' ')[0] ?? "N/A",
+                 order.orderDate?.toString().split(' ')[0] ?? "",
                   Icons.calendar_today,
                 ),
               ),

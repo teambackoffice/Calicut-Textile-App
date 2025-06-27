@@ -841,27 +841,33 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
   }
 
   Widget _buildUomDropdown(int index) {
-    return DropdownButtonFormField<OrderModel.Uom>(
-      value: _productControllers[index].selectedUom,
-      decoration: InputDecoration(
-        labelText: 'UOM',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      ),
-      items: OrderModel.Uom.values
-          .where((uom) => uom != OrderModel.Uom.EMPTY)
-          .map((uom) => DropdownMenuItem(
-                value: uom,
-                child: Text(_getUomDisplayText(uom)),
-              ))
-          .toList(),
-      onChanged: (value) {
-        setState(() {
-          _productControllers[index].selectedUom = value!;
-        });
-      },
-    );
-  }
+  final selected = _productControllers[index].selectedUom;
+  final selectedValue = selected == OrderModel.Uom.EMPTY ? null : selected;
+
+  return DropdownButtonFormField<OrderModel.Uom>(
+    isExpanded: true,
+    value: selectedValue,
+    decoration: InputDecoration(
+      labelText: 'UOM',
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+    ),
+    hint: const Text('Select UOM'),
+    items: OrderModel.Uom.values
+        .where((uom) => uom != OrderModel.Uom.EMPTY)
+        .map((uom) => DropdownMenuItem(
+              value: uom,
+              child: Text(_getUomDisplayText(uom)),
+            ))
+        .toList(),
+    onChanged: (value) {
+      setState(() {
+        _productControllers[index].selectedUom = value ?? OrderModel.Uom.EMPTY;
+      });
+    },
+  );
+}
+
 
   Widget _buildStatusDropdown() {
     final statuses = ['draft', 'converted', 'cancelled'];

@@ -55,6 +55,8 @@ class UpdateSupplierOrderService {
 
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
+      log(responseBody);
+      
       
      
 
@@ -92,6 +94,7 @@ class UpdateSupplierOrderService {
         return null;
       }
     } catch (e) {
+      print("Error: $e ");
       _showSnackbar(context, 'Network error: ${e.toString()}', Colors.red);
       return null;
     }
