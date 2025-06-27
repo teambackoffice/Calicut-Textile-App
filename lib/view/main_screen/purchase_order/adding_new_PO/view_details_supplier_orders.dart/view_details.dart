@@ -234,8 +234,10 @@ class ViewDetailsSupplierOrder extends StatelessWidget {
                           color: Colors.black87,
                         ),
                       ),
-                      if (item.uom != null)
-                        Text(
+                     
+                      item.uom == null
+                          ? const SizedBox.shrink()
+                          :  Text(
                           "Unit: ${item.uom}",
                           style: const TextStyle(
                             fontSize: 12,

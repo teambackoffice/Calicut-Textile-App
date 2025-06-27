@@ -66,7 +66,6 @@ for (var file in request.files) {
       if (response.statusCode == 200 || response.statusCode == 201) {
         log("response.body : $response.body");
         
-        _showSnackbar(context, 'Product created successfully!', Colors.green);
         return true;
       } else if (response.statusCode == 400) {
         final result = jsonDecode(responseBody);

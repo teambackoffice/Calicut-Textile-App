@@ -192,32 +192,44 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   }
 
   // Select item from search and show form
-  void _selectItemFromSearch(Item item) {
-    setState(() {
-      _selectedItem = item;
-      _showItemForm = true;
-      _isCreatingNew = false;
-      
-      // Set basic item details
-      widget.itemCodeController.text = item.code;
-      widget.itemNameController.text = item.name;
+  // Select item from search and show form
+// Select item from search and show form
+void _selectItemFromSearch(Item item) {
+  setState(() {
+    _selectedItem = item;
+    _showItemForm = true;
+    _isCreatingNew = false;
+    
+    // Set basic item details
+    widget.itemCodeController.text = item.code;
+    widget.itemNameController.text = item.name;
+    
+    // Validate UOM exists in options before setting
+    if (item.selectedUOM.isNotEmpty && widget.UomOptions.contains(item.selectedUOM)) {
       _selectedUOM = item.selectedUOM;
-      
-      // Clear form fields for user input
-      widget.quantityController.clear();
-      widget.pcsController.clear();
-      widget.rateController.clear();
-      widget.colorController.clear();
-      netQtyController.clear();
-      totalAmountController.clear();
-      
-      // Clear images
-      _selectedImages.clear();
-      _selectedImagePaths.clear();
-      _updateImageCount();
-    });
+    } else {
+      _selectedUOM = null; // Reset if UOM not found in options
+    }
+    
+    // Clear form fields for user input
+    widget.quantityController.clear();
+    widget.pcsController.clear();
+    widget.rateController.clear();
+    widget.colorController.clear();
+    netQtyController.clear();
+    totalAmountController.clear();
+    
+    // Clear images
+    _selectedImages.clear();
+    _selectedImagePaths.clear();
+    _updateImageCount();
+  });
+  
+  // Send UOM to parent if valid
+  if (widget.onUOMSelected != null && _selectedUOM != null) {
+    widget.onUOMSelected!(_selectedUOM!);
   }
-
+}
   // Create new item
   void _createNewItem() {
     setState(() {
@@ -258,29 +270,30 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   }
 
   // Add item with current form data
-  void _addCurrentItem() {
-    if (widget.formKey.currentState!.validate()) {
-      final newItem = Item(
-        code: _isCreatingNew ? 
-          DateTime.now().millisecondsSinceEpoch.toString() : // Generate code for new items
-          _selectedItem!.code,
-        name: widget.itemNameController.text,
-        color: widget.colorController.text.isEmpty ? null : widget.colorController.text,
-        selectedUOM: _selectedUOM ?? '',
-        rate: double.tryParse(widget.rateController.text),
-        quantity: double.tryParse(widget.quantityController.text),
-        pcs: double.tryParse(widget.pcsController.text),
-        netQty: double.tryParse(netQtyController.text),
-        totalAmount: double.tryParse(totalAmountController.text),
-        image1: _selectedImagePaths.isNotEmpty ? _selectedImagePaths[0] : null,
-        image2: _selectedImagePaths.length > 1 ? _selectedImagePaths[1] : null,
-        image3: _selectedImagePaths.length > 2 ? _selectedImagePaths[2] : null,
-      );
-      
-      widget.onItemCreated(newItem);
-      Navigator.pop(context);
-    }
+  // Add item with current form data
+void _addCurrentItem() {
+  if (widget.formKey.currentState!.validate()) {
+    final newItem = Item(
+      code: _isCreatingNew ? 
+        DateTime.now().millisecondsSinceEpoch.toString() : // Generate code for new items
+        _selectedItem!.code,
+      name: widget.itemNameController.text,
+      color: widget.colorController.text.isEmpty ? null : widget.colorController.text,
+      selectedUOM: _selectedUOM ?? '', // Ensure UOM is included
+      rate: double.tryParse(widget.rateController.text),
+      quantity: double.tryParse(widget.quantityController.text),
+      pcs: double.tryParse(widget.pcsController.text),
+      netQty: double.tryParse(netQtyController.text),
+      totalAmount: double.tryParse(totalAmountController.text),
+      image1: _selectedImagePaths.isNotEmpty ? _selectedImagePaths[0] : null,
+      image2: _selectedImagePaths.length > 1 ? _selectedImagePaths[1] : null,
+      image3: _selectedImagePaths.length > 2 ? _selectedImagePaths[2] : null,
+    );
+    
+    widget.onItemCreated(newItem);
+    Navigator.pop(context);
   }
+}
 
   // Image handling methods
   Future<void> _pickImages() async {
@@ -585,17 +598,31 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                 ),
 
                 // Net Quantity (calculated)
-                _buildFormField(
-                  label: 'Net Quantity (Qty × PCS)',
-                  child: TextFormField(
-                    controller: netQtyController,
-                    readOnly: true,
-                    decoration: _getInputDecoration('Calculated automatically').copyWith(
-                      fillColor: Colors.grey[50],
-                      filled: true,
-                    ),
-                  ),
-                ),
+               // UOM (for both new items and selected items)
+_buildFormField(
+  label: 'Unit of Measurement *',
+  child: DropdownButtonFormField<String>(
+    isExpanded: true,
+    value: _selectedUOM,
+    hint: const Text('Select UOM'),
+    validator: (value) => value == null ? 'Please select UOM' : null,
+    onChanged: (value) {
+      setState(() {
+        _selectedUOM = value;
+      });
+      if (widget.onUOMSelected != null && value != null) {
+        widget.onUOMSelected!(value);
+      }
+    },
+    items: widget.UomOptions.map((uom) {
+      return DropdownMenuItem<String>(
+        value: uom,
+        child: Text(uom),
+      );
+    }).toList(),
+    decoration: _getInputDecoration(_isCreatingNew ? 'Select UOM' : 'Change UOM if needed'),
+  ),
+),
 
                 // Rate
                 _buildFormField(

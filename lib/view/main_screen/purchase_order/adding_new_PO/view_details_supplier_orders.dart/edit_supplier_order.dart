@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:calicut_textile_app/modal/get_supplier_orders.dart' as OrderModel;
-import 'package:calicut_textile_app/modal/add_product_modal.dart' as AddProductModel;
 
 class EditSupplierOrderPage extends StatefulWidget {
   final OrderModel.Order order;
@@ -98,7 +97,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     _selectedSupplierId = _editedOrder.supplier;
     _selectedSupplierName = _editedOrder.supplierName;
 
-    // Initialize product controllers with proper number formatting
+    // Initialize product controllers with proper number formatting and UOM preservation
     _productControllers = _editedOrder.products.map((product) {
       return ProductControllers(
         productController: TextEditingController(text: product.product),
@@ -109,6 +108,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
         amountController: TextEditingController(text: product.amount.toString()),
         requiredByController: TextEditingController(
             text: "${product.requiredBy.day}/${product.requiredBy.month}/${product.requiredBy.year}"),
+        // Preserve the original UOM from the fetched data
         selectedUom: product.uom ?? OrderModel.Uom.UNIT,
         selectedProductName: product.product,
       );
@@ -143,12 +143,13 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
         _selectedSupplierName = _availableSuppliers.first.supplierName;
       }
       
-      // Validate selected products exist in the list
+      // Validate selected products exist in the list, but preserve UOM
       for (int i = 0; i < _productControllers.length; i++) {
         final selectedProductName = _productControllers[i].selectedProductName;
         final productExists = _availableProducts.any((product) => product.name == selectedProductName);
         if (!productExists && selectedProductName.isNotEmpty) {
           _productControllers[i].selectedProductName = '';
+          // Don't reset UOM here - keep the original fetched UOM
         }
       }
       
@@ -242,8 +243,78 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     }
   }
 
+  bool _validateAllFields() {
+    // Check if form validation passes
+    if (!_formKey.currentState!.validate()) {
+      _showValidationError('Please fill all required fields correctly.');
+      return false;
+    }
+
+    // Check if supplier is selected
+    if (_selectedSupplierId.isEmpty) {
+      _showValidationError('Please select a supplier.');
+      return false;
+    }
+
+    // Check if at least one product is added
+    if (_productControllers.isEmpty) {
+      _showValidationError('Please add at least one product.');
+      return false;
+    }
+
+    // Check each product for required fields
+    for (int i = 0; i < _productControllers.length; i++) {
+      final controller = _productControllers[i];
+      
+      // Check if product is selected
+      if (controller.selectedProductName.isEmpty) {
+        _showValidationError('Please select a product for Product ${i + 1}.');
+        return false;
+      }
+      
+      // Check if UOM is selected
+      if (controller.selectedUom == OrderModel.Uom.EMPTY) {
+        _showValidationError('Please select UOM for Product ${i + 1}.');
+        return false;
+      }
+      
+      // Check if required by date is filled
+      if (controller.requiredByController.text.isEmpty) {
+        _showValidationError('Please select Required By date for Product ${i + 1}.');
+        return false;
+      }
+      
+      // Check if quantity is greater than 0
+      final quantity = double.tryParse(controller.quantityController.text) ?? 0;
+      if (quantity <= 0) {
+        _showValidationError('Quantity must be greater than 0 for Product ${i + 1}.');
+        return false;
+      }
+      
+      // Check if rate is greater than 0
+      final rate = double.tryParse(controller.rateController.text) ?? 0;
+      if (rate <= 0) {
+        _showValidationError('Rate must be greater than 0 for Product ${i + 1}.');
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   Future<void> _saveOrder() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Validate all fields before proceeding
+    if (!_validateAllFields()) return;
 
     setState(() => _isLoading = true);
 
@@ -316,26 +387,6 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  void _showCreateProductDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => CreateProductDialog(
-        onProductCreated: (productName) {
-          // Refresh products list and select the new product
-          Provider.of<ProductListController>(context, listen: false)
-              .fetchProducts()
-              .then((_) {
-            if (mounted) {
-              setState(() {
-                _availableProducts = Provider.of<ProductListController>(context, listen: false).products;
-              });
-            }
-          });
-        },
-      ),
-    );
   }
 
   @override
@@ -449,7 +500,6 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
             const SizedBox(height: 12),
             
             // Status Dropdown
-            _buildStatusDropdown(),
           ],
         ),
       ),
@@ -533,7 +583,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
           ),
           const SizedBox(height: 12),
           
-          // Product Dropdown with Create Option
+          // Product Dropdown
           _buildProductDropdown(index),
           const SizedBox(height: 12),
           
@@ -632,55 +682,35 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
       }
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                value: validSelectedProduct,
-                decoration: InputDecoration(
-                  labelText: 'Product Name',
-                  prefixIcon: const Icon(Icons.shopping_bag, color: Color(0xFF3B82F6)),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                items: [
-                  ..._availableProducts.map((product) => DropdownMenuItem(
-                    value: product.name,
-                    child: Text(product.name),
-                  )),
-                ],
-                onChanged: (value) {
-                  if (value == 'CREATE_NEW') {
-                    _showCreateProductDialog();
-                  } else if (value != null) {
-                    setState(() {
-                      _productControllers[index].selectedProductName = value;
-                      _productControllers[index].productController.text = value;
-                      
-                      // Auto-fill rate if available from product data
-                      final selectedProduct = _availableProducts.firstWhere(
-                        (product) => product.name == value,
-                        orElse: () => _availableProducts.first,
-                      );
-                      _productControllers[index].rateController.text = selectedProduct.rate.toString();
-                      
-                      // Convert UOM from string to enum
-                      _productControllers[index].selectedUom = _convertStringToUom(selectedProduct.uom ?? 'Unit');
-                    });
-                    // Call calculate net qty after setState to update all calculations
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _calculateAmount(index);
-                    });
-                  }
-                },
-                validator: (value) => value == null || value.isEmpty || value == 'CREATE_NEW' ? 'Product is required' : null,
-              ),
-            ),
-          ],
-        ),
-      ],
+    return DropdownButtonFormField<String>(
+      value: validSelectedProduct,
+      decoration: InputDecoration(
+        labelText: 'Product Name',
+        prefixIcon: const Icon(Icons.shopping_bag, color: Color(0xFF3B82F6)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      items: _availableProducts.map((product) => DropdownMenuItem(
+        value: product.name,
+        child: Text(product.name),
+      )).toList(),
+      onChanged: (value) {
+        if (value != null) {
+          setState(() {
+            _productControllers[index].selectedProductName = value;
+            _productControllers[index].productController.text = value;
+            
+            // Only auto-fill UOM from product data, not rate
+            final selectedProduct = _availableProducts.firstWhere(
+              (product) => product.name == value,
+              orElse: () => _availableProducts.first,
+            );
+            
+            // Convert UOM from string to enum and update the controller
+          });
+          // No need to calculate amount as rate is not auto-filled
+        }
+      },
+      validator: (value) => value == null || value.isEmpty ? 'Product is required' : null,
     );
   }
 
@@ -835,11 +865,15 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
       ),
-      validator: (value) {
-        if (value?.isEmpty ?? true) return '$label is required';
-        if (double.tryParse(value!) == null) return 'Enter a valid number';
-        return null;
-      },
+    validator: (value) {
+  if (value?.isEmpty ?? true) return '$label is required';
+  if (double.tryParse(value!) == null) return 'Enter a valid number';
+  if (label == 'Quantity' || label == 'Rate') {
+    final numValue = double.parse(value);
+    if (numValue <= 0) return '$label must be greater than 0';
+  }
+  return null;
+},
     );
   }
 
@@ -864,11 +898,12 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
 
   Widget _buildUomDropdown(int index) {
     final selected = _productControllers[index].selectedUom;
-    final selectedValue = selected == OrderModel.Uom.EMPTY ? null : selected;
+    // Don't set to null if it's EMPTY, instead use the actual selected value
+    final selectedValue = selected;
 
     return DropdownButtonFormField<OrderModel.Uom>(
       isExpanded: true,
-      value: selectedValue,
+      value: selectedValue == OrderModel.Uom.EMPTY ? null : selectedValue,
       decoration: InputDecoration(
         labelText: 'UOM',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -887,31 +922,11 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
           _productControllers[index].selectedUom = value ?? OrderModel.Uom.EMPTY;
         });
       },
+     validator: (value) => value == null ? 'UOM is required' : null,
     );
   }
 
-  Widget _buildStatusDropdown() {
-    final statuses = ['draft', 'converted', 'cancelled'];
-    return DropdownButtonFormField<String>(
-      value: _selectedStatus.toLowerCase(),
-      decoration: InputDecoration(
-        labelText: 'Status',
-        prefixIcon: const Icon(Icons.flag, color: Color(0xFF3B82F6)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      items: statuses
-          .map((status) => DropdownMenuItem(
-                value: status,
-                child: Text(status.toUpperCase()),
-              ))
-          .toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedStatus = value!;
-        });
-      },
-    );
-  }
+  
 
   Widget _buildReadOnlyField(String label, String value) {
     return Column(
@@ -1056,152 +1071,5 @@ class ProductControllers {
     netQtyController.dispose();
     amountController.dispose();
     requiredByController.dispose();
-  }
-}
-
-class CreateProductDialog extends StatefulWidget {
-  final Function(String) onProductCreated;
-
-  const CreateProductDialog({
-    super.key,
-    required this.onProductCreated,
-  });
-
-  @override
-  State<CreateProductDialog> createState() => _CreateProductDialogState();
-}
-
-class _CreateProductDialogState extends State<CreateProductDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _productNameController = TextEditingController();
-  final _qtyController = TextEditingController();
-  final _rateController = TextEditingController();
-  final _colorController = TextEditingController();
-  String _selectedUom = 'Unit';
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _productNameController.dispose();
-    _qtyController.dispose();
-    _rateController.dispose();
-    _colorController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _createProduct() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final qty = double.tryParse(_qtyController.text) ?? 0;
-      final rate = double.tryParse(_rateController.text) ?? 0;
-      final amount = qty * rate; // This will be recalculated based on net_qty in the edit page
-
-      // You'll need to implement the API key retrieval
-      // For now, using a placeholder
-      final product = AddProductModel.Product(
-        productName: _productNameController.text,
-        qty: qty.toString(),
-        rate: rate.toString(),
-        amount: amount.toString(),
-        color: _colorController.text,
-        uom: _selectedUom,
-        imagePaths: [], // Empty for now
-        api_key: 'your_api_key', // Implement API key retrieval
-      );
-
-      final result = await Provider.of<ProductListController>(context, listen: false)
-          .addProduct(addProductModel: product, context: context);
-
-      if (result == true) {
-        widget.onProductCreated(_productNameController.text);
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating product: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Create New Product'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _productNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Product Name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value?.isEmpty ?? true ? 'Product name is required' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _colorController,
-                decoration: const InputDecoration(
-                  labelText: 'Color',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value?.isEmpty ?? true ? 'Color is required' : null,
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _selectedUom,
-                decoration: const InputDecoration(
-                  labelText: 'UOM',
-                  border: OutlineInputBorder(),
-                ),
-                items: ['Unit', 'Kg', 'Nos'].map((uom) => DropdownMenuItem(
-                  value: uom,
-                  child: Text(uom),
-                )).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedUom = value!;
-                  });
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _createProduct,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF3B82F6),
-            foregroundColor: Colors.white,
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text('Create'),
-        ),
-      ],
-    );
   }
 }

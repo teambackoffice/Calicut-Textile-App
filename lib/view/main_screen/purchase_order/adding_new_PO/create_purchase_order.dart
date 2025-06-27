@@ -52,7 +52,8 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   String selectedSupplier = 'Select Suppliers';
   String _selectedUOM = '';
   int _selectedImageCount = 0; // Track image count from dialog
-  final List<String> _uomOptions = ['EMPTY',
+  final List<String> _uomOptions = [
+  'EMPTY',
   'KG',
   'NOS',
   'UNIT',
@@ -74,7 +75,8 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   'FOOT',
   'FURLONG',
   'HAND',
-  'HECTOMETER',];
+  'HECTOMETER',
+].toSet().toList(); // Convert to Set and back to List to remove duplicates
   // Add loading state variable
   bool _isAddingItem = false;
 
@@ -292,119 +294,226 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   }
 
   void _showAddItemDialog() {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Add Item Dialog',
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return Container();
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-            CurvedAnimation(parent: animation, curve: Curves.elasticOut),
-          ),
-          child: FadeTransition(
-            opacity: animation,
-            child: Center(
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.95,
-                height: MediaQuery.of(context).size.height * 0.85,
-                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: Column(
-                    children: [
-                      // Header with blue gradient background
-                      DialogBoxHeader(),
-
-                      // Form content
-                      DialogBoxItems(
-                        formKey: _formKey, 
-                        itemCodeController: _itemCodeController, 
-                        itemNameController: _itemNameController, 
-                        quantityController: _quantityController, 
-                        rateController: _rateController,
-                        pcsController: _pcsController, 
-                        colorController: _colorController,
-                        UomOptions: _uomOptions,
-                        onUOMSelected: _updateSelectedUOM,
-                        onImageCountChanged: _updateImageCount, // Add image count callback
-                        onItemCreated: _handleItemCreated,
-                        onImagesSelected: _handleImagesSelected,
-                      ),
-
-                      // Action buttons with loading indicator
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(28),
-                            bottomRight: Radius.circular(28),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 16),
-                            Expanded(
-                              flex: 2,
-                              child: ElevatedButton.icon(
-                                onPressed: _isAddingItem ? null : _addItem, // Disable when loading
-                                icon: _isAddingItem 
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : const Icon(Icons.add_rounded),
-                                label: Text(
-                                  _isAddingItem ? 'ADDING...' : 'ADD ITEM',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _isAddingItem ? Colors.grey : Colors.blue,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  elevation: 2,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+  showGeneralDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: 'Add Item Dialog',
+    barrierColor: Colors.black54,
+    transitionDuration: const Duration(milliseconds: 300),
+    pageBuilder: (context, animation, secondaryAnimation) {
+      return StatefulBuilder(  // Add this wrapper
+        builder: (context, setDialogState) {  // Add setDialogState
+          return ScaleTransition(
+            scale: Tween<double>(begin: 0.8, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.elasticOut),
+            ),
+            child: FadeTransition(
+              opacity: animation,
+              child: Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.95,
+                   constraints: BoxConstraints(
+    maxHeight: MediaQuery.of(context).size.height * 0.85,
+  ), 
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
                     ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Column(
+                      children: [
+                        // Header with blue gradient background
+                        DialogBoxHeader(),
+
+                        // Form content
+                        Flexible(
+                          child: DialogBoxItems(
+                            formKey: _formKey, 
+                            itemCodeController: _itemCodeController, 
+                            itemNameController: _itemNameController, 
+                            quantityController: _quantityController, 
+                            rateController: _rateController,
+                            pcsController: _pcsController, 
+                            colorController: _colorController,
+                            UomOptions: _uomOptions,
+                            onUOMSelected: _updateSelectedUOM,
+                            onImageCountChanged: _updateImageCount,
+                            onItemCreated: _handleItemCreated,
+                            onImagesSelected: _handleImagesSelected,
+                          ),
+                        ),
+
+                        // Action buttons with loading indicator
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(28),
+                              bottomRight: Radius.circular(28),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 2,
+                                child: ElevatedButton.icon(
+                                  onPressed: _isAddingItem ? null : () => _addItemWithDialogState(setDialogState),
+                                  icon: _isAddingItem 
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Icon(Icons.add_rounded),
+                                  label: Text(
+                                    _isAddingItem ? 'ADDING...' : 'ADD ITEM',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _isAddingItem ? Colors.grey : Colors.blue,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
+          );
+        },
+      );
+    },
+  );
+}
+
+void _addItemWithDialogState(StateSetter setDialogState) async {
+  if (_formKey.currentState!.validate()) {
+    // Set loading state for both dialog and main widget
+    setDialogState(() {
+      _isAddingItem = true;
+    });
+    setState(() {
+      _isAddingItem = true;
+    });
+
+    // Rest of your _addItem logic here...
+    try {
+      final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
+
+      final qty = double.tryParse(_quantityController.text) ?? 0;
+      final pcs = int.tryParse(_pcsController.text) ?? 0;
+      final calculatedNetQty = qty * pcs;
+
+      final product = Product(
+        productName: _itemNameController.text,
+        qty: _quantityController.text,
+        pcs: _pcsController.text,
+        netQty: calculatedNetQty.toString(),
+        rate: _rateController.text,
+        amount: (int.parse(_quantityController.text) * double.parse(_rateController.text)).toString(),
+        color: _colorController.text,
+        uom: _selectedUOM,
+        imagePaths: _selectedImagePaths,
+        api_key: apiKey,
+      );
+     
+      final success = await ProductService.createProduct(
+        product: product,
+        context: context,
+      );
+
+      if (success == true) {
+        setState(() {
+          items.add(PurchaseOrderItem(
+            itemCode: _itemCodeController.text,
+            itemName: _itemNameController.text,
+            quantity: int.parse(_quantityController.text),
+            pcs: double.tryParse(_pcsController.text),
+            netQty: calculatedNetQty,
+            rate: double.parse(_rateController.text),
+            color: _colorController.text,
+            uom: _selectedUOM,
+            imageCount: _selectedImageCount,
+            amount: (int.parse(_quantityController.text)) * (double.parse(_rateController.text)),
+          ));
+        });
+
+        _clearForm();
+        Navigator.pop(context);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Item added successfully!',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
-      },
-    );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to create product. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setDialogState(() {
+        _isAddingItem = false;
+      });
+      setState(() {
+        _isAddingItem = false;
+      });
+    }
   }
+}
   
   String? selectedSupplierId; // Store the supplier ID
   String? selectedSupplierName;

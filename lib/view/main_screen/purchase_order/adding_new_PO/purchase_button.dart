@@ -6,7 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-class SavePurchaseOrderButton extends StatelessWidget {
+class SavePurchaseOrderButton extends StatefulWidget {
   SavePurchaseOrderButton({
     super.key,
     required this.items,
@@ -20,17 +20,24 @@ class SavePurchaseOrderButton extends StatelessWidget {
   final String? supplier;
   final TextEditingController requiredDate;
 
+  @override
+  State<SavePurchaseOrderButton> createState() => _SavePurchaseOrderButtonState();
+}
+
+class _SavePurchaseOrderButtonState extends State<SavePurchaseOrderButton> {
+
+   bool _isLoading = false;
   // Helper method to parse the date safely
   DateTime _parseRequiredDate() {
     try {
-      if (requiredDate.text.isEmpty) {
+      if (widget.requiredDate.text.isEmpty) {
         return DateTime.now();
       }
       
       // The requiredDate.text comes in format 'yyyy-MM-dd' from your date picker
       
       // Parse using the correct format that matches your input
-      DateTime parsedDate = DateFormat('yyyy-MM-dd').parse(requiredDate.text);
+      DateTime parsedDate = DateFormat('yyyy-MM-dd').parse(widget.requiredDate.text);
       
       
       return parsedDate;
@@ -54,7 +61,10 @@ class SavePurchaseOrderButton extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: items.isEmpty ? null : () async {
+            onPressed: widget.items.isEmpty ? null : () async {
+              setState(() {
+    _isLoading = true;
+  });
               try {
                 // Parse the required date safely
                 DateTime parsedRequiredDate = _parseRequiredDate();
@@ -65,7 +75,7 @@ class SavePurchaseOrderButton extends StatelessWidget {
                 final controller = context.read<CreateSupplierOrderController>();
         
                 // Create product list with proper date handling
-                final productList = items.map((item) {
+                final productList = widget.items.map((item) {
                   
                   return Product(
                     product: item.itemName,
@@ -91,7 +101,7 @@ class SavePurchaseOrderButton extends StatelessWidget {
                 
                 
                 // Validate supplier
-                if (supplier == null || supplier!.isEmpty) {
+                if (widget.supplier == null || widget.supplier!.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Please select a supplier first'),
@@ -104,9 +114,9 @@ class SavePurchaseOrderButton extends StatelessWidget {
                 // Create supplier order
                 final result = await controller.CreateSupplierOrder(
                   createsupplierorder: SupplierOrderModal(
-                    supplier: supplier!,
+                    supplier: widget.supplier!,
                     orderDate: formattedDate,
-                    grandTotal: grandTotal.toInt(),
+                    grandTotal: widget.grandTotal.toInt(),
                     products: productList,
                   ),
                   context: context,
@@ -128,9 +138,24 @@ class SavePurchaseOrderButton extends StatelessWidget {
                   ),
                 );
               }
+              finally {
+                setState(() {
+                  _isLoading = false;
+                });
+              
+              }
             },
-            icon: const Icon(Icons.save),
-            label: const Text('SAVE PURCHASE ORDER'),
+            icon: _isLoading 
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Icon(Icons.save),
+            label: Text(_isLoading ? 'SAVING...' : 'SAVE PURCHASE ORDER'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green.shade600,
               foregroundColor: Colors.white,
