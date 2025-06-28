@@ -41,15 +41,43 @@ class Item {
     return Item(
       code: datum.name,
       name: datum.productName,
-      color: datum.color,
       selectedUOM: datum.uom,
       rate: datum.rate,
       quantity: datum.quantity,
       pcs: datum.pcs,
       netQty: datum.netQty,
-      image1: datum.image1,
-      image2: datum.image2,
-      image3: datum.image3,
+      
+    );
+  }
+
+  // Add this copyWith method
+  Item copyWith({
+    String? code,
+    String? name,
+    String? color,
+    String? selectedUOM,
+    double? rate,
+    double? quantity,
+    double? pcs,
+    double? netQty,
+    double? totalAmount,
+    String? image1,
+    String? image2,
+    String? image3,
+  }) {
+    return Item(
+      code: code ?? this.code,
+      name: name ?? this.name,
+      color: color ?? this.color,
+      selectedUOM: selectedUOM ?? this.selectedUOM,
+      rate: rate ?? this.rate,
+      quantity: quantity ?? this.quantity,
+      pcs: pcs ?? this.pcs,
+      netQty: netQty ?? this.netQty,
+      totalAmount: totalAmount ?? this.totalAmount,
+      image1: image1 ?? this.image1,
+      image2: image2 ?? this.image2,
+      image3: image3 ?? this.image3,
     );
   }
 }
@@ -70,7 +98,8 @@ class DialogBoxItems extends StatefulWidget {
     this.onImageCountChanged, 
     this.onImagesSelected,
     required this.pcsController,
-    this.onCreationModeChanged, // Add this new parameter
+    this.onCreationModeChanged,
+    this.onNewItemCreated, // New callback for simplified item creation
   });
 
   final GlobalKey<FormState> formKey;
@@ -86,12 +115,12 @@ class DialogBoxItems extends StatefulWidget {
   final void Function(String)? onUOMSelected;
   final void Function(int)? onImageCountChanged; 
   final void Function(List<String>)? onImagesSelected;
-  final void Function(bool)? onCreationModeChanged; // Add this callback
+  final void Function(bool)? onCreationModeChanged;
+ final Future<void> Function(Item)? onNewItemCreated;// New callback
 
   @override
   State<DialogBoxItems> createState() => _DialogBoxItemsState();
 }
-
 
 class _DialogBoxItemsState extends State<DialogBoxItems> {
   String? _selectedUOM;
@@ -105,7 +134,10 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   
   Item? _selectedItem;
   bool _isCreatingNew = false;
-  bool _showItemForm = false; // New state to control form visibility
+  bool _showItemForm = false;
+  bool _showSimpleForm = false; // New state for simple creation form
+  
+  bool _isCreatingItem = false; // New state for tracking item creation
   
   List<File> _selectedImages = [];
   List<String> _selectedImagePaths = [];
@@ -118,7 +150,16 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
     
     final result = qty * pcs;
     netQtyController.text = result.toStringAsFixed(2);
-    _calculateTotal(); // Recalculate total when net qty changes
+    _calculateTotal();
+  }
+
+  // Calculate total amount for simple form (qty * rate)
+  void _calculateSimpleTotal() {
+    final qty = double.tryParse(widget.quantityController.text) ?? 0.0;
+    final rate = double.tryParse(widget.rateController.text) ?? 0.0;
+    
+    final total = qty * rate;
+    totalAmountController.text = total.toStringAsFixed(2);
   }
 
   // Calculate total amount (net_qty * rate)
@@ -137,8 +178,10 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
     
     // Add listeners for calculations
     widget.quantityController.addListener(_calculateNetQty);
+    widget.quantityController.addListener(_calculateSimpleTotal);
     widget.pcsController.addListener(_calculateNetQty);
     widget.rateController.addListener(_calculateTotal);
+    widget.rateController.addListener(_calculateSimpleTotal);
     
     _loadProducts();
   }
@@ -194,80 +237,76 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
     });
   }
 
-  // Select item from search and show form
-  // Select item from search and show form
-// Select item from search and show form
-void _selectItemFromSearch(Item item) {
-  setState(() {
-    _selectedItem = item;
-    _showItemForm = true;
-    _isCreatingNew = false;
+  void _selectItemFromSearch(Item item) {
+    setState(() {
+      _selectedItem = item;
+      _showItemForm = true;
+      _isCreatingNew = false;
+      _showSimpleForm = false;
+      
+      // Set basic item details
+      widget.itemCodeController.text = item.code;
+      widget.itemNameController.text = item.name;
+      
+      // Validate UOM exists in options before setting
+      if (item.selectedUOM.isNotEmpty && widget.UomOptions.contains(item.selectedUOM)) {
+        _selectedUOM = item.selectedUOM;
+      } else {
+        _selectedUOM = null;
+      }
+      
+      // Clear form fields for user input
+      widget.quantityController.clear();
+      widget.pcsController.clear();
+      widget.rateController.clear();
+      widget.colorController.clear();
+      netQtyController.clear();
+      totalAmountController.clear();
+      
+      // Clear images
+      _selectedImages.clear();
+      _selectedImagePaths.clear();
+      _updateImageCount();
+    });
     
-    // Set basic item details
-    widget.itemCodeController.text = item.code;
-    widget.itemNameController.text = item.name;
-    
-    // Validate UOM exists in options before setting
-    if (item.selectedUOM.isNotEmpty && widget.UomOptions.contains(item.selectedUOM)) {
-      _selectedUOM = item.selectedUOM;
-    } else {
-      _selectedUOM = null; // Reset if UOM not found in options
+    if (widget.onUOMSelected != null && _selectedUOM != null) {
+      widget.onUOMSelected!(_selectedUOM!);
     }
     
-    // Clear form fields for user input
-    widget.quantityController.clear();
-    widget.pcsController.clear();
-    widget.rateController.clear();
-    widget.colorController.clear();
-    netQtyController.clear();
-    totalAmountController.clear();
-    
-    // Clear images
-    _selectedImages.clear();
-    _selectedImagePaths.clear();
-    _updateImageCount();
-  });
-  
-  // Send UOM to parent if valid
-  if (widget.onUOMSelected != null && _selectedUOM != null) {
-    widget.onUOMSelected!(_selectedUOM!);
+    if (widget.onCreationModeChanged != null) {
+      widget.onCreationModeChanged!(false);
+    }
   }
-  
-  // Notify parent about creation mode
-  if (widget.onCreationModeChanged != null) {
-    widget.onCreationModeChanged!(false);
-  }
-}
 
-  // Create new item
+  // Show simple creation form
   void _createNewItem() {
-  setState(() {
-    _isCreatingNew = true;
-    _showItemForm = true;
-    _selectedItem = null;
-    _selectedUOM = null;
+    setState(() {
+      _isCreatingNew = true;
+      _showItemForm = false;
+      _showSimpleForm = true;
+      _selectedItem = null;
+      _selectedUOM = null;
+      
+      // Clear all form fields
+      widget.itemCodeController.clear();
+      widget.itemNameController.clear();
+      widget.colorController.clear();
+      widget.quantityController.clear();
+      widget.pcsController.clear();
+      widget.rateController.clear();
+      netQtyController.clear();
+      totalAmountController.clear();
+      
+      // Clear images
+      _selectedImages.clear();
+      _selectedImagePaths.clear();
+      _updateImageCount();
+    });
     
-    // Clear all form fields
-    widget.itemCodeController.clear();
-    widget.itemNameController.clear();
-    widget.colorController.clear();
-    widget.quantityController.clear();
-    widget.pcsController.clear();
-    widget.rateController.clear();
-    netQtyController.clear();
-    totalAmountController.clear();
-    
-    // Clear images
-    _selectedImages.clear();
-    _selectedImagePaths.clear();
-    _updateImageCount();
-  });
-  
-  // Notify parent about creation mode
-  if (widget.onCreationModeChanged != null) {
-    widget.onCreationModeChanged!(true);
+    if (widget.onCreationModeChanged != null) {
+      widget.onCreationModeChanged!(true);
+    }
   }
-}
 
   // Reset to search view
   void _resetToSearch() {
@@ -275,30 +314,168 @@ void _selectItemFromSearch(Item item) {
       _selectedItem = null;
       _isCreatingNew = false;
       _showItemForm = false;
+      _showSimpleForm = false;
+      _isCreatingItem = false; // Reset creation state
       _searchController.clear();
       _filteredItems = _allItems;
       _selectedImages.clear();
       _selectedImagePaths.clear();
       _updateImageCount();
     });
+    
+    // Notify parent that creation mode is off
+    if (widget.onCreationModeChanged != null) {
+      widget.onCreationModeChanged!(false);
+    }
+  }
+
+  // Create new item with simplified data and redirect to search
+  void _createSimpleItem() async {
+    if (_validateSimpleForm()) {
+      setState(() {
+        _isCreatingItem = true;
+      });
+
+      try {
+        final newItem = Item(
+          code: DateTime.now().millisecondsSinceEpoch.toString(),
+          name: widget.itemNameController.text,
+          selectedUOM: _selectedUOM ?? '',
+          rate: double.tryParse(widget.rateController.text),
+          quantity: double.tryParse(widget.quantityController.text),
+          totalAmount: double.tryParse(totalAmountController.text),
+        );
+        
+        // Call the new callback to handle API creation
+        if (widget.onNewItemCreated != null) {
+          await widget.onNewItemCreated!(newItem);
+        }
+        
+        // Add the newly created item to local lists immediately
+        setState(() {
+          _allItems.insert(0, newItem); // Add to beginning of list
+          _filteredItems = _allItems; // Update filtered list
+        });
+        
+        // Refresh the ProductListController to get latest data from server
+        await _refreshProductController();
+        
+        // Reset to search view
+        _resetToSearch();
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${newItem.name} created successfully! Search for it to add details.',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      } catch (e) {
+        // Handle any errors from API call
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create item: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } finally {
+        setState(() {
+          _isCreatingItem = false;
+        });
+      }
+    }
+  }
+
+  // Add new method to refresh ProductController
+  Future<void> _refreshProductController() async {
+    try {
+      final productController = Provider.of<ProductListController>(context, listen: false);
+      
+      // Clear existing products to force fresh fetch
+      productController.products.clear();
+      
+      // Fetch fresh data from server
+      await productController.fetchProducts();
+      
+      // Update local lists with fresh data
+      List<Item> apiItems = productController.products.map((datum) => Item.fromDatum(datum)).toList();
+      
+      setState(() {
+        _allItems = [
+          ...apiItems,
+          ...(widget.existingItems ?? []),
+        ];
+        _filteredItems = _allItems;
+      });
+      
+      print("ProductController refreshed successfully");
+    } catch (e) {
+      print("Failed to refresh ProductController: $e");
+      // Don't show error to user as this is background operation
+    }
+  }
+
+  bool _validateSimpleForm() {
+    if (widget.itemNameController.text.isEmpty) {
+      _showError('Item name is required');
+      return false;
+    }
+    if (_selectedUOM == null || _selectedUOM!.isEmpty) {
+      _showError('Please select UOM');
+      return false;
+    }
+    if (widget.quantityController.text.isEmpty || double.tryParse(widget.quantityController.text) == null) {
+      _showError('Please enter valid quantity');
+      return false;
+    }
+    if (widget.rateController.text.isEmpty || double.tryParse(widget.rateController.text) == null) {
+      _showError('Please enter valid rate');
+      return false;
+    }
+    return true;
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   // Add item with current form data
-  // Add item with current form data
-void _addCurrentItem() {
+ void _addCurrentItem() {
   if (widget.formKey.currentState!.validate()) {
     final newItem = Item(
       code: _isCreatingNew ? 
-        DateTime.now().millisecondsSinceEpoch.toString() : // Generate code for new items
+        DateTime.now().millisecondsSinceEpoch.toString() :
         _selectedItem!.code,
       name: widget.itemNameController.text,
       color: widget.colorController.text.isEmpty ? null : widget.colorController.text,
-      selectedUOM: _selectedUOM ?? '', // Ensure UOM is included
+      selectedUOM: _selectedUOM ?? '',
       rate: double.tryParse(widget.rateController.text),
       quantity: double.tryParse(widget.quantityController.text),
       pcs: double.tryParse(widget.pcsController.text),
       netQty: double.tryParse(netQtyController.text),
       totalAmount: double.tryParse(totalAmountController.text),
+      // UPDATED: Pass the actual image paths
       image1: _selectedImagePaths.isNotEmpty ? _selectedImagePaths[0] : null,
       image2: _selectedImagePaths.length > 1 ? _selectedImagePaths[1] : null,
       image3: _selectedImagePaths.length > 2 ? _selectedImagePaths[2] : null,
@@ -309,8 +486,55 @@ void _addCurrentItem() {
   }
 }
 
-  // Image handling methods
+  // Image handling methods with camera support
   Future<void> _pickImages() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(Icons.photo_camera),
+                title: Text('Take Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _getImageFromCamera();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _getImageFromGallery();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _getImageFromCamera() async {
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        maxHeight: 1080,
+        maxWidth: 1080,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        _addSelectedImage(pickedFile);
+      }
+    } catch (e) {
+      _showImageError(e);
+    }
+  }
+
+  Future<void> _getImageFromGallery() async {
     try {
       final List<XFile> pickedFiles = await _imagePicker.pickMultiImage(
         maxHeight: 1080,
@@ -326,15 +550,9 @@ void _addCurrentItem() {
         if (remainingSlots > 0) {
           final List<XFile> filesToAdd = pickedFiles.take(remainingSlots).toList();
           
-          setState(() {
-            for (XFile file in filesToAdd) {
-              _selectedImages.add(File(file.path));
-              _selectedImagePaths.add(file.path);
-            }
-          });
-          
-          _updateImageCount();
-          _sendImagePathsToParent();
+          for (XFile file in filesToAdd) {
+            _addSelectedImage(file);
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -345,13 +563,27 @@ void _addCurrentItem() {
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking images: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showImageError(e);
     }
+  }
+
+  void _addSelectedImage(XFile file) {
+    setState(() {
+      _selectedImages.add(File(file.path));
+      _selectedImagePaths.add(file.path);
+    });
+    
+    _updateImageCount();
+    _sendImagePathsToParent();
+  }
+
+  void _showImageError(dynamic e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error picking images: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   void _removeImage(int index) {
@@ -386,7 +618,7 @@ void _addCurrentItem() {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Search Interface
-              if (!_showItemForm) ...[
+              if (!_showItemForm && !_showSimpleForm) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -428,7 +660,7 @@ void _addCurrentItem() {
                 ),
                 const SizedBox(height: 16),
                 
-                // Search Results - Show only item names
+                // Search Results
                 if (_searchController.text.isNotEmpty) ...[
                   if (_filteredItems.isNotEmpty) ...[
                     Text(
@@ -521,34 +753,18 @@ void _addCurrentItem() {
                 ],
               ],
 
-              // Item Form
-              if (_showItemForm) ...[
-                // Header
+              // Simple Item Creation Form
+              if (_showSimpleForm) ...[
                 Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _isCreatingNew ? 'Create New Item' : 'Selected Item Details',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
-                            ),
-                          ),
-                          if (!_isCreatingNew) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              _selectedItem!.name,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ],
+                      child: Text(
+                        'Create New Item',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
                       ),
                     ),
                     IconButton(
@@ -560,17 +776,159 @@ void _addCurrentItem() {
                 ),
                 const SizedBox(height: 24),
 
-                // Item Name (for new items only)
-                if (_isCreatingNew) ...[
-                  _buildFormField(
-                    label: 'Item Name *',
-                    child: TextFormField(
-                      controller: widget.itemNameController,
-                      validator: (value) => value?.isEmpty == true ? 'Item name is required' : null,
-                      decoration: _getInputDecoration('Enter item name'),
+                // Item Name
+                _buildFormField(
+                  label: 'Item Name *',
+                  child: TextFormField(
+                    controller: widget.itemNameController,
+                    decoration: _getInputDecoration('Enter item name'),
+                  ),
+                ),
+
+                // UOM
+                _buildFormField(
+                  label: 'Unit of Measurement *',
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: _selectedUOM,
+                    hint: const Text('Select UOM'),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedUOM = value;
+                      });
+                      if (widget.onUOMSelected != null && value != null) {
+                        widget.onUOMSelected!(value);
+                      }
+                    },
+                    items: widget.UomOptions.map((uom) {
+                      return DropdownMenuItem<String>(
+                        value: uom,
+                        child: Text(uom),
+                      );
+                    }).toList(),
+                    decoration: _getInputDecoration('Select UOM'),
+                  ),
+                ),
+
+                // Quantity
+                _buildFormField(
+                  label: 'Quantity *',
+                  child: TextFormField(
+                    controller: widget.quantityController,
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    decoration: _getInputDecoration('0'),
+                  ),
+                ),
+
+                // Rate
+                _buildFormField(
+                  label: 'Rate *',
+                  child: TextFormField(
+                    controller: widget.rateController,
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    decoration: _getInputDecoration('0.00').copyWith(
+                      prefixText: '₹ ',
                     ),
                   ),
-                ],
+                ),
+
+                // Total Amount (calculated)
+                _buildFormField(
+                  label: 'Total Amount (Qty × Rate)',
+                  child: TextFormField(
+                    controller: totalAmountController,
+                    readOnly: true,
+                    decoration: _getInputDecoration('Calculated automatically').copyWith(
+                      fillColor: Colors.grey[50],
+                      filled: true,
+                      prefixText: '₹ ',
+                    ),
+                  ),
+                ),
+
+                // Create Button
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isCreatingItem ? null : _createSimpleItem,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isCreatingItem ? Colors.grey.shade400 : Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: _isCreatingItem ? 0 : 2,
+                    ),
+                    child: _isCreatingItem
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'CREATING...',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            'CREATE ITEM',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+
+              // Detailed Item Form (for existing items)
+              if (_showItemForm) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Selected Item Details',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _selectedItem!.name,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _resetToSearch,
+                      icon: Icon(Icons.close),
+                      tooltip: 'Back to search',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
 
                 // Quantity and PCS Row
                 Row(
@@ -612,31 +970,43 @@ void _addCurrentItem() {
                 ),
 
                 // Net Quantity (calculated)
-               // UOM (for both new items and selected items)
-_buildFormField(
-  label: 'Unit of Measurement *',
-  child: DropdownButtonFormField<String>(
-    isExpanded: true,
-    value: _selectedUOM,
-    hint: const Text('Select UOM'),
-    validator: (value) => value == null ? 'Please select UOM' : null,
-    onChanged: (value) {
-      setState(() {
-        _selectedUOM = value;
-      });
-      if (widget.onUOMSelected != null && value != null) {
-        widget.onUOMSelected!(value);
-      }
-    },
-    items: widget.UomOptions.map((uom) {
-      return DropdownMenuItem<String>(
-        value: uom,
-        child: Text(uom),
-      );
-    }).toList(),
-    decoration: _getInputDecoration(_isCreatingNew ? 'Select UOM' : 'Change UOM if needed'),
-  ),
-),
+                _buildFormField(
+                  label: 'Net Quantity (Qty × PCS)',
+                  child: TextFormField(
+                    controller: netQtyController,
+                    readOnly: true,
+                    decoration: _getInputDecoration('Calculated automatically').copyWith(
+                      fillColor: Colors.grey[50],
+                      filled: true,
+                    ),
+                  ),
+                ),
+
+                // UOM
+                _buildFormField(
+                  label: 'Unit of Measurement *',
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: _selectedUOM,
+                    hint: const Text('Select UOM'),
+                    validator: (value) => value == null ? 'Please select UOM' : null,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedUOM = value;
+                      });
+                      if (widget.onUOMSelected != null && value != null) {
+                        widget.onUOMSelected!(value);
+                      }
+                    },
+                    items: widget.UomOptions.map((uom) {
+                      return DropdownMenuItem<String>(
+                        value: uom,
+                        child: Text(uom),
+                      );
+                    }).toList(),
+                    decoration: _getInputDecoration('Change UOM if needed'),
+                  ),
+                ),
 
                 // Rate
                 _buildFormField(
@@ -669,34 +1039,6 @@ _buildFormField(
                     ),
                   ),
                 ),
-
-                // UOM (for new items)
-                // if (_isCreatingNew) ...[
-                //   _buildFormField(
-                //     label: 'Unit of Measurement *',
-                //     child: DropdownButtonFormField<String>(
-                //       isExpanded: true,
-                //       value: _selectedUOM,
-                //       hint: const Text('Select UOM'),
-                //       validator: (value) => value == null ? 'Please select UOM' : null,
-                //       onChanged: (value) {
-                //         setState(() {
-                //           _selectedUOM = value;
-                //         });
-                //         if (widget.onUOMSelected != null && value != null) {
-                //           widget.onUOMSelected!(value);
-                //         }
-                //       },
-                //       items: widget.UomOptions.map((uom) {
-                //         return DropdownMenuItem<String>(
-                //           value: uom,
-                //           child: Text(uom),
-                //         );
-                //       }).toList(),
-                //       decoration: _getInputDecoration('Select UOM'),
-                //     ),
-                //   ),
-                // ],
 
                 // Color (optional)
                 _buildFormField(
@@ -780,8 +1122,6 @@ _buildFormField(
                     ],
                   ),
                 ),
-
-               
               ],
             ],
           ),
@@ -828,8 +1168,10 @@ _buildFormField(
     netQtyController.dispose();
     totalAmountController.dispose();
     widget.quantityController.removeListener(_calculateNetQty);
+    widget.quantityController.removeListener(_calculateSimpleTotal);
     widget.pcsController.removeListener(_calculateNetQty);
     widget.rateController.removeListener(_calculateTotal);
+    widget.rateController.removeListener(_calculateSimpleTotal);
     super.dispose();
   }
 }

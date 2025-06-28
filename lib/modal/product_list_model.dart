@@ -56,11 +56,8 @@ class Datum {
      double? pcs;           // Added pcs field
   double? netQty; 
     double amount;
-    String color;
     String uom;
-    dynamic image1;
-    dynamic image2;
-    dynamic image3;
+  
 
     Datum({
         required this.name,
@@ -70,11 +67,8 @@ class Datum {
         required this.pcs,           // Optional pcs
         required this.netQty, 
         required this.amount,
-        required this.color,
         required this.uom,
-        required this.image1,
-        required this.image2,
-        required this.image3,
+       
     });
 
     factory Datum.fromJson(Map<String, dynamic> json) => Datum(
@@ -85,11 +79,8 @@ class Datum {
         pcs: json["pcs"],
         netQty: json["net_qty"],
         amount: json["amount"],
-        color: json["color"],
         uom: json["uom"],
-        image1: json["image_1"],
-        image2: json["image_2"],
-        image3: json["image_3"],
+     
     );
 
     Map<String, dynamic> toJson() => {
@@ -100,10 +91,7 @@ class Datum {
         "pcs": pcs,
         "net_qty": netQty,
         "amount": amount,
-        "color": color,
         "uom": uom,
-        "image_1": image1,
-        "image_2": image2,
-        "image_3": image3,
+       
     };
 }

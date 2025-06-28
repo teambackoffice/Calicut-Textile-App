@@ -17,28 +17,30 @@ class PurchaseOrderItem {
   String itemCode;
   String itemName;
   int quantity;
-  double? pcs;           // Added pcs field
-  double? netQty;     // Added netQty field
+  double? pcs;
+  double? netQty;
   double rate;
   String color;
   double amount;
   String uom;
   int imageCount;
+  List<String> imagePaths;
   
   PurchaseOrderItem({
     required this.itemCode,
     required this.itemName,
     required this.quantity,
-    this.pcs,           // Optional pcs
-    this.netQty,        // Optional netQty
+    this.pcs,
+    this.netQty,
     required this.rate,
     required this.color,
     required this.amount,
     required this.uom,
     this.imageCount = 0,
+     this.imagePaths = const []
   });
   
-  double get total => netQty! * rate;
+  double get total => netQty != null ? netQty! * rate : quantity * rate;
 }
 
 class CreatePurchaseOrder extends StatefulWidget {
@@ -46,46 +48,50 @@ class CreatePurchaseOrder extends StatefulWidget {
 
   @override
   State<CreatePurchaseOrder> createState() => _CreatePurchaseOrderState();
+  
 }
 
 class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   String selectedSupplier = 'Select Suppliers';
   String _selectedUOM = '';
-  int _selectedImageCount = 0; // Track image count from dialog
+  int _selectedImageCount = 0;
+   
+  
+  // Add this to store all images for the order
+  List<String> _allOrderImages = []; 
+  
   final List<String> _uomOptions = [
-  'EMPTY',
-  'KG',
-  'NOS',
-  'UNIT',
-  'BOX',
-  'PAIR',
-  'SET',
-  'METER',
-  'BARLEYCORN',
-  'CALIBRE',
-  'CABLE_LENGTH_UK',
-  'CABLE_LENGTH_US',
-  'CABLE_LENGTH',
-  'CENTIMETER',
-  'CHAIN',
-  'DECIMETER',
-  'ELLS_UK',
-  'EMS_PICA',
-  'FATHOM',
-  'FOOT',
-  'FURLONG',
-  'HAND',
-  'HECTOMETER',
-].toSet().toList(); // Convert to Set and back to List to remove duplicates
-  // Add loading state variable
+    'EMPTY',
+    'KG',
+    'NOS',
+    'UNIT',
+    'BOX',
+    'PAIR',
+    'SET',
+    'METER',
+    'BARLEYCORN',
+    'CALIBRE',
+    'CABLE_LENGTH_UK',
+    'CABLE_LENGTH_US',
+    'CABLE_LENGTH',
+    'CENTIMETER',
+    'CHAIN',
+    'DECIMETER',
+    'ELLS_UK',
+    'EMS_PICA',
+    'FATHOM',
+    'FOOT',
+    'FURLONG',
+    'HAND',
+    'HECTOMETER',
+  ].toSet().toList();
+  
   bool _isAddingItem = false;
-
+  bool _isCreatingNewItem = false;
+  bool _isDialogInCreationMode = false; // New state to track dialog creation mode
   List<String> _selectedImagePaths = [];
 
   void _handleImagesSelected(List<String> imagePaths) {
-    for (int i = 0; i < imagePaths.length; i++) {
-    }
-    
     setState(() {
       _selectedImagePaths = imagePaths;
     });
@@ -95,27 +101,25 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   DateTime? _selectedDate;
 
   Future<void> _selectDate(BuildContext context) async {
-  final DateTime today = DateTime.now();
-  final DateTime? picked = await showDatePicker(
-    context: context,
-    initialDate: _selectedDate ?? today,
-    firstDate: DateTime(today.year, today.month, today.day), // disallow past dates
-    lastDate: DateTime(2100),
-  );
+    final DateTime today = DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? today,
+      firstDate: DateTime(today.year, today.month, today.day),
+      lastDate: DateTime(2100),
+    );
 
-  if (picked != null && picked != _selectedDate) {
-    setState(() {
-      _selectedDate = picked;
-      requireddatecontroller.text = DateFormat('yyyy-MM-dd').format(picked);
-    });
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        requireddatecontroller.text = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
   }
-}
-
 
   final List<PurchaseOrderItem> items = [];
   final _formKey = GlobalKey<FormState>();
   
-  // Controllers for dialog
   final _itemCodeController = TextEditingController();
   final _itemNameController = TextEditingController();
   final _quantityController = TextEditingController();
@@ -152,23 +156,67 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     super.dispose();
   }
 
+  // Handle simplified new item creation
+  Future<void> _handleNewItemCreation(Item item) async {
+    try {
+      final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
+
+      // Create Product object for API call with simplified data
+      final product = Product(
+        productName: item.name,
+        qty: item.quantity?.toString() ?? '1',
+        pcs: '1', // Default PCS for new items
+        netQty: item.quantity?.toString() ?? '1', // Same as quantity for simple items
+        rate: item.rate?.toString() ?? '0',
+        amount: item.totalAmount?.toString() ?? '0',
+        color: '', // Empty color for new items
+        uom: item.selectedUOM,
+        imagePaths: [], // No images for new item creation
+        api_key: apiKey,
+      );
+     
+      final success = await ProductService.createProduct(
+        product: product,
+        context: context,
+      );
+
+      if (success != true) {
+        // Throw exception if API call failed
+        throw Exception('Failed to create product');
+      }
+      
+      // If we reach here, the API call was successful
+      print('Item created successfully: ${item.name}');
+      
+    } catch (e) {
+      // Re-throw the exception so the dialog can handle it
+      throw e;
+    }
+  }
+
   void _handleItemCreated(Item item) {
+    // Extract image paths from the item
+    List<String> itemImages = [];
+    if (item.image1 != null) itemImages.add(item.image1!);
+    if (item.image2 != null) itemImages.add(item.image2!);
+    if (item.image3 != null) itemImages.add(item.image3!);
+
     setState(() {
       items.add(PurchaseOrderItem(
         itemCode: item.code,
         itemName: item.name,
         quantity: item.quantity?.toInt() ?? 1,
-        pcs: item.pcs,                    // Pass pcs value
-        netQty: item.netQty,              // Pass netQty value
+        pcs: item.pcs,
+        netQty: item.netQty,
         rate: item.rate ?? 0.0,
         color: item.color ?? '',
         uom: item.selectedUOM,
-        imageCount: 0,
-        amount: (item.rate ?? 0.0) * (item.quantity ?? 1),
+        imageCount: itemImages.length, // Use actual image count
+        imagePaths: itemImages, // NEW: Store the actual image paths
+        amount: item.totalAmount ?? 0.0,
       ));
     });
     
-    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -177,7 +225,7 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                '${item.name} added to purchase order',
+                '${item.name} added to purchase order with ${itemImages.length} image(s)',
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
@@ -191,92 +239,7 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     );
   }
 
-  // Modified _addItem function with loading indicator
-  void _addItem() async {
-    if (_formKey.currentState!.validate()) {
-      // Set loading state to true
-      setState(() {
-        _isAddingItem = true;
-      });
 
-      try {
-        final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
-
-        // Calculate netQty if needed
-        final qty = double.tryParse(_quantityController.text) ?? 0;
-        final pcs = int.tryParse(_pcsController.text) ?? 0;
-        final calculatedNetQty = qty * pcs;
-
-        // Create Product object for API call
-        final product = Product(
-          productName: _itemNameController.text,
-          qty: _quantityController.text,
-          pcs: _pcsController.text,              // Include pcs
-          netQty: calculatedNetQty.toString(),   // Include calculated netQty
-          rate: _rateController.text,
-          amount: (int.parse(_quantityController.text) * double.parse(_rateController.text)).toString(),
-          color: _colorController.text,
-          uom: _selectedUOM,
-          imagePaths: _selectedImagePaths,
-          api_key: apiKey,
-        );
-       
-        // Call the API service
-        final success = await ProductService.createProduct(
-          product: product,
-          context: context,
-        );
-
-        if (success == true) {
-          // API call successful - add to local list
-          setState(() {
-            items.add(PurchaseOrderItem(
-              itemCode: _itemCodeController.text,
-              itemName: _itemNameController.text,
-              quantity: int.parse(_quantityController.text),
-              pcs: double.tryParse(_pcsController.text),          // Include pcs
-              netQty: calculatedNetQty,                        // Include netQty
-              rate: double.parse(_rateController.text),
-              color: _colorController.text,
-              uom: _selectedUOM,
-              imageCount: _selectedImageCount,
-              amount: (int.parse(_quantityController.text)) * (double.parse(_rateController.text)),
-            ));
-          });
-
-          // Clear form fields
-          _clearForm();
-          
-          // Close the dialog/page
-          Navigator.pop(context);
-          
-        } else if (success == null) {
-          // Handle specific error
-        } else {
-          // General failure
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to create product. Please try again.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } catch (e) {
-        // Handle any unexpected errors
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('An error occurred: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } finally {
-        // Always set loading state to false when done
-        setState(() {
-          _isAddingItem = false;
-        });
-      }
-    }
-  }
 
   void _clearForm() {
     _itemCodeController.clear();
@@ -284,9 +247,10 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     _quantityController.clear();
     _rateController.clear();
     _colorController.clear();
+    _pcsController.clear();
     _selectedUOM = '';
     _selectedImageCount = 0;
-    // _selectedImagePaths.clear(); // Clear image paths
+    _selectedImagePaths.clear();
   }
 
   void _removeItem(int index) {
@@ -296,199 +260,181 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   }
 
   void _showAddItemDialog() {
-  showGeneralDialog(
-    context: context,
-    barrierDismissible: true,
-    barrierLabel: 'Add Item Dialog',
-    barrierColor: Colors.black54,
-    transitionDuration: const Duration(milliseconds: 300),
-    pageBuilder: (context, animation, secondaryAnimation) {
-      return StatefulBuilder(
-        builder: (context, setDialogState) {
-          return ScaleTransition(
-            scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-              CurvedAnimation(parent: animation, curve: Curves.elasticOut),
-            ),
-            child: FadeTransition(
-              opacity: animation,
-              child: Dialog(
-                backgroundColor: Colors.transparent,
-                insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 0.95,
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.85,
-                  ), 
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Column(
-                      children: [
-                        // Header with blue gradient background
-                        DialogBoxHeader(),
-
-                        // Form content
-                        Flexible(
-                          child: DialogBoxItems(
-                            formKey: _formKey, 
-                            itemCodeController: _itemCodeController, 
-                            itemNameController: _itemNameController, 
-                            quantityController: _quantityController, 
-                            rateController: _rateController,
-                            pcsController: _pcsController, 
-                            colorController: _colorController,
-                            UomOptions: _uomOptions,
-                            onUOMSelected: _updateSelectedUOM,
-                            onImageCountChanged: _updateImageCount,
-                            onItemCreated: _handleItemCreated,
-                            onImagesSelected: _handleImagesSelected,
-                            // Add new callback to track creation mode
-                            onCreationModeChanged: (bool isCreatingNew) {
-                              _isCreatingNewItem = isCreatingNew;
-                            },
-                          ),
-                        ),
-
-                        // Action buttons with loading indicator
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(28),
-                              bottomRight: Radius.circular(28),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 16),
-                              Expanded(
-                                flex: 2,
-                                child: ElevatedButton.icon(
-                                  onPressed: _isAddingItem ? null : () => _addItemWithDialogState(setDialogState),
-                                  icon: _isAddingItem 
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                        ),
-                                      )
-                                    : const Icon(Icons.add_rounded),
-                                  label: Text(
-                                    _isAddingItem 
-                                      ? (_isCreatingNewItem ? 'CREATING...' : 'ADDING...') 
-                                      : (_isCreatingNewItem ? 'CREATE & ADD' : 'ADD ITEM'),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _isAddingItem ? Colors.grey : Colors.blue,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+    // Reset dialog creation mode when opening
+    setState(() {
+      _isDialogInCreationMode = false;
+    });
+    
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Add Item Dialog',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return ScaleTransition(
+              scale: Tween<double>(begin: 0.8, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.elasticOut),
+              ),
+              child: FadeTransition(
+                opacity: animation,
+                child: Dialog(
+                  backgroundColor: Colors.transparent,
+                  insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.95,
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.85,
+                    ), 
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
                       ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Column(
+                        children: [
+                          // Header with blue gradient background
+                          DialogBoxHeader(),
+
+                          // Form content
+                          Flexible(
+                            child: DialogBoxItems(
+                              formKey: _formKey, 
+                              itemCodeController: _itemCodeController, 
+                              itemNameController: _itemNameController, 
+                              quantityController: _quantityController, 
+                              rateController: _rateController,
+                              pcsController: _pcsController, 
+                              colorController: _colorController,
+                              UomOptions: _uomOptions,
+                              onUOMSelected: _updateSelectedUOM,
+                              onImageCountChanged: _updateImageCount,
+                              onItemCreated: _handleItemCreated,
+                              onImagesSelected: _handleImagesSelected,
+                              onCreationModeChanged: (bool isCreatingNew) {
+                                setDialogState(() {
+                                  _isDialogInCreationMode = isCreatingNew;
+                                });
+                                setState(() {
+                                  _isCreatingNewItem = isCreatingNew;
+                                  _isDialogInCreationMode = isCreatingNew;
+                                });
+                              },
+                              onNewItemCreated: _handleNewItemCreation, // New callback
+                            ),
+                          ),
+
+                          // Action buttons with loading indicator
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: const BorderRadius.only(
+                                bottomLeft: Radius.circular(28),
+                                bottomRight: Radius.circular(28),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  child: ElevatedButton.icon(
+                                    onPressed: (_isAddingItem || _isDialogInCreationMode) ? null : () => _addItemWithDialogState(setDialogState),
+                                    icon: _isAddingItem 
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : const Icon(Icons.add_rounded),
+                                    label: Text(
+                                      _isAddingItem 
+                                        ? 'ADDING...' 
+                                        : _isDialogInCreationMode
+                                          ? 'CREATING ITEM...'
+                                          : 'ADD ITEM',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: (_isAddingItem || _isDialogInCreationMode) ? Colors.grey : Colors.blue,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      elevation: 2,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
-
-// In your _CreatePurchaseOrderState class, replace the existing _addItemWithDialogState method:
-
-void _addItemWithDialogState(StateSetter setDialogState) async {
-  if (_formKey.currentState!.validate()) {
-    // Set loading state for both dialog and main widget
-    setDialogState(() {
-      _isAddingItem = true;
-    });
-    setState(() {
-      _isAddingItem = true;
-    });
-
-    try {
-      final qty = double.tryParse(_quantityController.text) ?? 0;
-      final pcs = int.tryParse(_pcsController.text) ?? 0;
-      final calculatedNetQty = qty * pcs;
-
-      bool success = true; // Default success for existing items
-
-      // Check if this is a new item creation (API call needed) or existing item (no API call)
-      // You'll need to pass this information from DialogBoxItems
-      // For now, let's assume you add a parameter to track this
-      bool isCreatingNewItem = _isCreatingNewItem; // You'll need to add this state variable
-
-      if (isCreatingNewItem) {
-        // Only call API for new item creation
-        final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
-
-        final product = Product(
-          productName: _itemNameController.text,
-          qty: _quantityController.text,
-          pcs: _pcsController.text,
-          netQty: calculatedNetQty.toString(),
-          rate: _rateController.text,
-          amount: (int.parse(_quantityController.text) * double.parse(_rateController.text)).toString(),
-          color: _colorController.text,
-          uom: _selectedUOM,
-          imagePaths: _selectedImagePaths,
-          api_key: apiKey,
+            );
+          },
         );
-       
-        success = (await ProductService.createProduct(
-          product: product,
-          context: context,
-        ))!;
-      }
-      // If it's an existing item from search, skip API call (success remains true)
+      },
+    );
+  }
 
-      if (success == true) {
-        // Add to local list regardless of whether it was API call or existing item
+  void _addItemWithDialogState(StateSetter setDialogState) async {
+    if (_formKey.currentState!.validate()) {
+      setDialogState(() {
+        _isAddingItem = true;
+      });
+      setState(() {
+        _isAddingItem = true;
+      });
+
+      try {
+        final qty = double.tryParse(_quantityController.text) ?? 0;
+        final pcs = double.tryParse(_pcsController.text) ?? 1;
+        final calculatedNetQty = qty * pcs;
+
         setState(() {
           items.add(PurchaseOrderItem(
             itemCode: _itemCodeController.text,
             itemName: _itemNameController.text,
-            quantity: int.parse(_quantityController.text),
+            quantity: qty.toInt(),
             pcs: double.tryParse(_pcsController.text),
             netQty: calculatedNetQty,
             rate: double.parse(_rateController.text),
             color: _colorController.text,
             uom: _selectedUOM,
-            imageCount: _selectedImageCount,
-            amount: (int.parse(_quantityController.text)) * (double.parse(_rateController.text)),
+            imageCount: _selectedImagePaths.length,
+            imagePaths: List.from(_selectedImagePaths), // NEW: Copy the selected images
+            amount: calculatedNetQty * double.parse(_rateController.text),
           ));
         });
 
         _clearForm();
         Navigator.pop(context);
+        
+        setState(() {
+          _isDialogInCreationMode = false;
+        });
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -498,9 +444,7 @@ void _addItemWithDialogState(StateSetter setDialogState) async {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    isCreatingNewItem 
-                      ? 'New item created and added successfully!' 
-                      : 'Item added successfully!',
+                    'Item added successfully with ${_selectedImagePaths.length} image(s)!',
                     style: TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ),
@@ -512,51 +456,47 @@ void _addItemWithDialogState(StateSetter setDialogState) async {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
-      } else {
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to create product. Please try again.'),
+          SnackBar(
+            content: Text('An error occurred: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
+      } finally {
+        setDialogState(() {
+          _isAddingItem = false;
+        });
+        setState(() {
+          _isAddingItem = false;
+        });
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('An error occurred: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setDialogState(() {
-        _isAddingItem = false;
-      });
-      setState(() {
-        _isAddingItem = false;
-      });
     }
   }
-}
-bool _isCreatingNewItem = false;
 
-  
-  String? selectedSupplierId; // Store the supplier ID
+  List<String> _getAllItemImages() {
+    List<String> allImages = [];
+    for (var item in items) {
+      allImages.addAll(item.imagePaths);
+    }
+    return allImages;
+  }
+
+  String? selectedSupplierId;
   String? selectedSupplierName;
-  final TextEditingController suppliercontroller =TextEditingController();
+  final TextEditingController suppliercontroller = TextEditingController();
 
   void _showSupplierDialog() {
     showDialog(
       context: context,
       builder: (context) => SupplierDialogBox(
-        suppliers: [], // Your suppliers list
+        suppliers: [],
         onSupplierSelected: (String supplierId, String supplierName) {
           setState(() {
             selectedSupplierId = supplierId;
             selectedSupplierName = supplierName;
-            suppliercontroller.text = supplierName; // Update the TextField
+            suppliercontroller.text = supplierName;
           });
-          
-          // Optional: Call any additional callback if needed
         },
       ),
     );
@@ -564,6 +504,7 @@ bool _isCreatingNewItem = false;
 
   @override
   Widget build(BuildContext context) {
+    final totalImages = _getAllItemImages().length;
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
@@ -571,7 +512,7 @@ bool _isCreatingNewItem = false;
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         title: const Text(
-          "Create Supplier Order",
+          "Create Supplier PO",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),
@@ -664,7 +605,7 @@ bool _isCreatingNewItem = false;
                         ],
                       ),
                       child: AbsorbPointer(
-                        child: SuppliersSelect(supplierName : suppliercontroller),
+                        child: SuppliersSelect(supplierName: suppliercontroller),
                       ),
                     ),
                   )
@@ -720,236 +661,236 @@ bool _isCreatingNewItem = false;
                   
                   const SizedBox(height: 16),
                   
-                if (items.isEmpty)
-                  EmptyItemsContainer()
-                else
-                  ...items.asMap().entries.map((entry) {
-                    int index = entry.key;
-                    PurchaseOrderItem item = entry.value;
-                    return Card(
-                      color: Colors.white,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    item.itemName,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
+                  if (items.isEmpty)
+                    EmptyItemsContainer()
+                  else
+                    ...items.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      PurchaseOrderItem item = entry.value;
+                      return Card(
+                        color: Colors.white,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      item.itemName,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                IconButton(
-                                  onPressed: () => _removeItem(index),
-                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                  constraints: const BoxConstraints(),
-                                  padding: EdgeInsets.zero,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                           
-                            // First row: Quantity, PCS, Net Qty
-                            Row(
-                              children: [
-                                // Quantity
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade50,
-                                    borderRadius: BorderRadius.circular(6),
+                                  IconButton(
+                                    onPressed: () => _removeItem(index),
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                    constraints: const BoxConstraints(),
+                                    padding: EdgeInsets.zero,
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.inventory, size: 14, color: Colors.blue.shade700),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Qty: ${item.quantity}',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.blue.shade700,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                
-                                // PCS (if available)
-                                if (item.pcs != null) ...[
-                                  const SizedBox(width: 12),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                             
+                              // First row: Quantity, PCS, Net Qty
+                              Row(
+                                children: [
+                                  // Quantity
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.shade50,
+                                      color: Colors.blue.shade50,
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.apps, size: 14, color: Colors.green.shade700),
+                                        Icon(Icons.inventory, size: 14, color: Colors.blue.shade700),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'PCS: ${item.pcs}',
+                                          'Qty: ${item.quantity}',
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: Colors.green.shade700,
+                                            color: Colors.blue.shade700,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
+                                  
+                                  // PCS (if available)
+                                  if (item.pcs != null) ...[
+                                    const SizedBox(width: 12),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.shade50,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.apps, size: 14, color: Colors.green.shade700),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'PCS: ${item.pcs}',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.green.shade700,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  
+                                  // Net Qty (if available)
+                                  if (item.netQty != null) ...[
+                                    const SizedBox(width: 12),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.purple.shade50,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.calculate, size: 14, color: Colors.purple.shade700),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Net: ${item.netQty!.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.purple.shade700,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                                
-                                // Net Qty (if available)
-                                if (item.netQty != null) ...[
-                                  const SizedBox(width: 12),
+                              ),
+                              
+                              const SizedBox(height: 8),
+                              
+                              // Second row: Rate and Total
+                              Row(
+                                children: [
+                                  // Rate
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: Colors.purple.shade50,
+                                      color: Colors.orange.shade50,
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.calculate, size: 14, color: Colors.purple.shade700),
+                                        Icon(Icons.currency_rupee, size: 14, color: Colors.orange.shade700),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'Net: ${item.netQty!.toStringAsFixed(2)}',
+                                          'Rate: ${item.rate.toStringAsFixed(2)}',
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: Colors.purple.shade700,
+                                            color: Colors.orange.shade700,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
+                                  
+                                  const SizedBox(width: 12),
+                                  
+                                  // Total
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.shade50,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.calculate, size: 14, color: Colors.red.shade700),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Total: ₹${item.total.toStringAsFixed(2)}',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.red.shade700,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 8),
-                            
-                            // Second row: Rate and Total
-                            Row(
-                              children: [
-                                // Rate
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.shade50,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.currency_rupee, size: 14, color: Colors.orange.shade700),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Rate: ${item.rate.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.orange.shade700,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                              ),
+                              
+                              const SizedBox(height: 8),
+                              
+                              // Third row: Color, UOM, Images (metadata)
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Color (only if not empty)
+                                  if (item.color.isNotEmpty) ...[
+                                    Icon(Icons.color_lens, size: 16, color: Colors.grey.shade600),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      item.color,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade600,
                                       ),
-                                    ],
-                                  ),
-                                ),
-                                
-                                const SizedBox(width: 12),
-                                
-                                // Total
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade50,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.calculate, size: 14, color: Colors.red.shade700),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Total: ₹${item.total.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.red.shade700,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 8),
-                            
-                            // Third row: Color, UOM, Images (metadata)
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Color (only if not empty)
-                                if (item.color.isNotEmpty) ...[
-                                  Icon(Icons.color_lens, size: 16, color: Colors.grey.shade600),
+                                    ),
+                                    const SizedBox(width: 20),
+                                  ],
+                                  
+                                  // UOM (always show)
+                                  Icon(Icons.straighten, size: 16, color: Colors.grey.shade600),
                                   const SizedBox(width: 4),
                                   Text(
-                                    item.color,
+                                    "UOM: ${item.uom}",
                                     style: TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey.shade600,
                                     ),
                                   ),
-                                  const SizedBox(width: 20),
-                                ],
-                                
-                                // UOM (always show)
-                                Icon(Icons.straighten, size: 16, color: Colors.grey.shade600),
-                                const SizedBox(width: 4),
-                                Text(
-                                  "UOM: ${item.uom}",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                                
-                                // Images (only if > 0)
-                                if (item.imageCount > 0) ...[
-                                  const SizedBox(width: 20),
-                                  Icon(Icons.photo_library, size: 16, color: Colors.grey.shade600),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    "${item.imageCount} image${item.imageCount > 1 ? 's' : ''}",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey.shade600,
+                                  
+                                  // Images (only if > 0)
+                                  if (item.imageCount > 0) ...[
+                                    const SizedBox(width: 20),
+                                    Icon(Icons.photo_library, size: 16, color: Colors.grey.shade600),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      "${item.imageCount} image${item.imageCount > 1 ? 's' : ''}",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade600,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    }),
                 ],
               ),
               const SizedBox(height: 20),
@@ -959,7 +900,14 @@ bool _isCreatingNewItem = false;
               const SizedBox(height: 24),
 
               // Action Buttons
-              SavePurchaseOrderButton(items: items,grandTotal :grandTotal,supplier :selectedSupplierId,requiredDate : requireddatecontroller  ),
+               SavePurchaseOrderButton(
+                items: items, 
+                grandTotal: grandTotal, 
+                supplier: selectedSupplierId, 
+                requiredDate: requireddatecontroller,
+                imagePaths: _getAllItemImages(), // Pass all images from all items
+                allowImageSelection: false, // Disable additional selection since images come from items
+              ),
             ],
           ),
         ),

@@ -49,7 +49,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
         elevation: 0,
         backgroundColor: Colors.white,
         title: const Text(
-          'Supplier Orders',
+          'Supplier PO',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
@@ -325,7 +325,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage>
         elevation: 8,
         icon: const Icon(Icons.add),
         label: const Text(
-          'Create Supplier Order',
+          'Create Supplier PO',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),

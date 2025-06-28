@@ -8,6 +8,7 @@ class ProductListService {
 
   Future<List<Datum>> getProducts() async {
     final url = Uri.parse(baseUrl);
+    print(url);
   
 
     try {
@@ -22,6 +23,7 @@ class ProductListService {
         throw Exception('Failed to load products. Status Code: ${response.statusCode}');
       }
     } catch (e) {
+      print("Error fetching products: $e");
       
       throw Exception('Error fetching products: $e');
     }
