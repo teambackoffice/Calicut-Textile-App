@@ -256,7 +256,7 @@ class _HomepageState extends State<Homepage> {
               children: [
                 _buildEnhancedMenuItem(
                   icon: Icons.receipt_long,
-                  title: 'Purchase Orders',
+                  title: 'Supplier Orders',
                   subtitle: 'Manage supplier orders',
                   color: Colors.blue,
                   onTap: () {

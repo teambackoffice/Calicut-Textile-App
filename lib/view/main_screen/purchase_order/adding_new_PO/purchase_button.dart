@@ -155,7 +155,7 @@ class _SavePurchaseOrderButtonState extends State<SavePurchaseOrderButton> {
                   ),
                 )
               : const Icon(Icons.save),
-            label: Text(_isLoading ? 'SAVING...' : 'SAVE PURCHASE ORDER'),
+            label: Text(_isLoading ? 'SAVING...' : 'SAVE SUPPLIER ORDER'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green.shade600,
               foregroundColor: Colors.white,

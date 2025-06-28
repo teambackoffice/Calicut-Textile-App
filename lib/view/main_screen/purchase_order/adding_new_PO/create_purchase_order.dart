@@ -303,8 +303,8 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     barrierColor: Colors.black54,
     transitionDuration: const Duration(milliseconds: 300),
     pageBuilder: (context, animation, secondaryAnimation) {
-      return StatefulBuilder(  // Add this wrapper
-        builder: (context, setDialogState) {  // Add setDialogState
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
           return ScaleTransition(
             scale: Tween<double>(begin: 0.8, end: 1.0).animate(
               CurvedAnimation(parent: animation, curve: Curves.elasticOut),
@@ -316,9 +316,9 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
                 insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
                 child: Container(
                   width: MediaQuery.of(context).size.width * 0.95,
-                   constraints: BoxConstraints(
-    maxHeight: MediaQuery.of(context).size.height * 0.85,
-  ), 
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.85,
+                  ), 
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(28),
@@ -352,6 +352,10 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
                             onImageCountChanged: _updateImageCount,
                             onItemCreated: _handleItemCreated,
                             onImagesSelected: _handleImagesSelected,
+                            // Add new callback to track creation mode
+                            onCreationModeChanged: (bool isCreatingNew) {
+                              _isCreatingNewItem = isCreatingNew;
+                            },
                           ),
                         ),
 
@@ -383,7 +387,9 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
                                       )
                                     : const Icon(Icons.add_rounded),
                                   label: Text(
-                                    _isAddingItem ? 'ADDING...' : 'ADD ITEM',
+                                    _isAddingItem 
+                                      ? (_isCreatingNewItem ? 'CREATING...' : 'ADDING...') 
+                                      : (_isCreatingNewItem ? 'CREATE & ADD' : 'ADD ITEM'),
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -416,6 +422,8 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   );
 }
 
+// In your _CreatePurchaseOrderState class, replace the existing _addItemWithDialogState method:
+
 void _addItemWithDialogState(StateSetter setDialogState) async {
   if (_formKey.currentState!.validate()) {
     // Set loading state for both dialog and main widget
@@ -426,33 +434,44 @@ void _addItemWithDialogState(StateSetter setDialogState) async {
       _isAddingItem = true;
     });
 
-    // Rest of your _addItem logic here...
     try {
-      final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
-
       final qty = double.tryParse(_quantityController.text) ?? 0;
       final pcs = int.tryParse(_pcsController.text) ?? 0;
       final calculatedNetQty = qty * pcs;
 
-      final product = Product(
-        productName: _itemNameController.text,
-        qty: _quantityController.text,
-        pcs: _pcsController.text,
-        netQty: calculatedNetQty.toString(),
-        rate: _rateController.text,
-        amount: (int.parse(_quantityController.text) * double.parse(_rateController.text)).toString(),
-        color: _colorController.text,
-        uom: _selectedUOM,
-        imagePaths: _selectedImagePaths,
-        api_key: apiKey,
-      );
-     
-      final success = await ProductService.createProduct(
-        product: product,
-        context: context,
-      );
+      bool success = true; // Default success for existing items
+
+      // Check if this is a new item creation (API call needed) or existing item (no API call)
+      // You'll need to pass this information from DialogBoxItems
+      // For now, let's assume you add a parameter to track this
+      bool isCreatingNewItem = _isCreatingNewItem; // You'll need to add this state variable
+
+      if (isCreatingNewItem) {
+        // Only call API for new item creation
+        final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
+
+        final product = Product(
+          productName: _itemNameController.text,
+          qty: _quantityController.text,
+          pcs: _pcsController.text,
+          netQty: calculatedNetQty.toString(),
+          rate: _rateController.text,
+          amount: (int.parse(_quantityController.text) * double.parse(_rateController.text)).toString(),
+          color: _colorController.text,
+          uom: _selectedUOM,
+          imagePaths: _selectedImagePaths,
+          api_key: apiKey,
+        );
+       
+        success = (await ProductService.createProduct(
+          product: product,
+          context: context,
+        ))!;
+      }
+      // If it's an existing item from search, skip API call (success remains true)
 
       if (success == true) {
+        // Add to local list regardless of whether it was API call or existing item
         setState(() {
           items.add(PurchaseOrderItem(
             itemCode: _itemCodeController.text,
@@ -479,7 +498,9 @@ void _addItemWithDialogState(StateSetter setDialogState) async {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Item added successfully!',
+                    isCreatingNewItem 
+                      ? 'New item created and added successfully!' 
+                      : 'Item added successfully!',
                     style: TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ),
@@ -516,6 +537,8 @@ void _addItemWithDialogState(StateSetter setDialogState) async {
     }
   }
 }
+bool _isCreatingNewItem = false;
+
   
   String? selectedSupplierId; // Store the supplier ID
   String? selectedSupplierName;
@@ -548,7 +571,7 @@ void _addItemWithDialogState(StateSetter setDialogState) async {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         title: const Text(
-          "Create Purchase Order",
+          "Create Supplier Order",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),

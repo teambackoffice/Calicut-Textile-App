@@ -70,6 +70,7 @@ class DialogBoxItems extends StatefulWidget {
     this.onImageCountChanged, 
     this.onImagesSelected,
     required this.pcsController,
+    this.onCreationModeChanged, // Add this new parameter
   });
 
   final GlobalKey<FormState> formKey;
@@ -85,10 +86,12 @@ class DialogBoxItems extends StatefulWidget {
   final void Function(String)? onUOMSelected;
   final void Function(int)? onImageCountChanged; 
   final void Function(List<String>)? onImagesSelected;
+  final void Function(bool)? onCreationModeChanged; // Add this callback
 
   @override
   State<DialogBoxItems> createState() => _DialogBoxItemsState();
 }
+
 
 class _DialogBoxItemsState extends State<DialogBoxItems> {
   String? _selectedUOM;
@@ -229,31 +232,42 @@ void _selectItemFromSearch(Item item) {
   if (widget.onUOMSelected != null && _selectedUOM != null) {
     widget.onUOMSelected!(_selectedUOM!);
   }
+  
+  // Notify parent about creation mode
+  if (widget.onCreationModeChanged != null) {
+    widget.onCreationModeChanged!(false);
+  }
 }
+
   // Create new item
   void _createNewItem() {
-    setState(() {
-      _isCreatingNew = true;
-      _showItemForm = true;
-      _selectedItem = null;
-      _selectedUOM = null;
-      
-      // Clear all form fields
-      widget.itemCodeController.clear();
-      widget.itemNameController.clear();
-      widget.colorController.clear();
-      widget.quantityController.clear();
-      widget.pcsController.clear();
-      widget.rateController.clear();
-      netQtyController.clear();
-      totalAmountController.clear();
-      
-      // Clear images
-      _selectedImages.clear();
-      _selectedImagePaths.clear();
-      _updateImageCount();
-    });
+  setState(() {
+    _isCreatingNew = true;
+    _showItemForm = true;
+    _selectedItem = null;
+    _selectedUOM = null;
+    
+    // Clear all form fields
+    widget.itemCodeController.clear();
+    widget.itemNameController.clear();
+    widget.colorController.clear();
+    widget.quantityController.clear();
+    widget.pcsController.clear();
+    widget.rateController.clear();
+    netQtyController.clear();
+    totalAmountController.clear();
+    
+    // Clear images
+    _selectedImages.clear();
+    _selectedImagePaths.clear();
+    _updateImageCount();
+  });
+  
+  // Notify parent about creation mode
+  if (widget.onCreationModeChanged != null) {
+    widget.onCreationModeChanged!(true);
   }
+}
 
   // Reset to search view
   void _resetToSearch() {
