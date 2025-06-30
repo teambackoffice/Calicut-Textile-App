@@ -3,7 +3,7 @@ import 'package:calicut_textile_app/modal/supplier_group_modal.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'https://calicuttextiles.tbo365.cloud';
+  static const String baseUrl = 'https://erp.calicuttextiles.com';
   
   // User session data - in a real app, you'd get this from secure storage
   static const Map<String, String> _defaultHeaders = {
@@ -55,7 +55,6 @@ class ApiService {
                   return null;
                 }
               } catch (e) {
-                print('Error parsing supplier group: $e');
                 return null;
               }
             })

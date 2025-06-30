@@ -3,7 +3,7 @@ import 'package:calicut_textile_app/modal/supplier_list_modal.dart';
 import 'package:http/http.dart' as http;
 
 class SuppliersListService {
-  final String baseUrl = 'https://calicuttextiles.tbo365.cloud/api/method/calicut_textiles.api.auth.get_all_supplier_details_with_searh';
+  final String baseUrl = 'https://erp.calicuttextiles.com/api/method/calicut_textiles.api.auth.get_all_supplier_details_with_searh';
   
   
 
@@ -32,7 +32,6 @@ class SuppliersListService {
     }
 
     final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
-    print('API URL: $uri');
 
     try {
       final request = http.Request('GET', uri);
@@ -41,8 +40,7 @@ class SuppliersListService {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
-      print('Response Status: ${response.statusCode}');
-      print('Response Body: $responseBody');
+
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(responseBody);
@@ -51,7 +49,6 @@ class SuppliersListService {
         throw Exception('Failed to load suppliers. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Service Error: $e');
       throw Exception('Error fetching suppliers: $e');
     }
   }

@@ -7,7 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class SupplierOrderService {
-  static const String baseUrl = 'https://calicuttextiles.tbo365.cloud/api/method/calicut_textiles.api.auth.create_supplier_order';
+  static const String baseUrl = 'https://erp.calicuttextiles.com/api/method/calicut_textiles.api.auth.create_supplier_order';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
   
   static Future<bool?> createSupplierOrder({
@@ -67,12 +67,9 @@ class SupplierOrderService {
                 'image_${i + 1}_0', 
                 imagePath
               ));
-              print('Added image file: image_${i + 1}_0 from $imagePath');
             } catch (e) {
-              print('Error adding image file $imagePath: $e');
             }
           } else {
-            print('Image file does not exist: $imagePath');
           }
         }
       }
@@ -81,37 +78,27 @@ class SupplierOrderService {
       request.headers.addAll(headers);
       
       // Debug: Print request details
-      print('=== REQUEST DEBUG ===');
-      print('URL: $baseUrl');
-      print('Headers: $headers');
-      print('Fields:');
+   
       request.fields.forEach((key, value) {
         if (key == 'products') {
           print('  $key: $value');
           // Pretty print products for better readability
           final products = jsonDecode(value);
-          print('  Parsed products:');
           for (int i = 0; i < products.length; i++) {
-            print('    Product ${i + 1}: ${products[i]}');
           }
         } else {
-          print('  $key: $value');
         }
       });
-      print('Files: ${request.files.length} files attached');
       for (var file in request.files) {
         print('  ${file.field}: ${file.filename}');
       }
-      print('=== END REQUEST DEBUG ===');
       
       // Send request
       http.StreamedResponse response = await request.send();
       
-      print('Response Status Code: ${response.statusCode}');
       
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseBody = await response.stream.bytesToString();
-        print('Response Body: $responseBody');
         
         try {
           final result = jsonDecode(responseBody);
@@ -125,10 +112,7 @@ class SupplierOrderService {
                 successMessage = messageData['message'] ?? successMessage;
                 
                 // Print additional success info
-                print('=== ORDER CREATED SUCCESSFULLY ===');
-                print('Order ID: ${messageData['docname']}');
-                print('Employee ID: ${messageData['employee_id']}');
-                print('=== END SUCCESS INFO ===');
+              
                 
               } else {
                 // Handle error case even with 200 status
@@ -145,14 +129,12 @@ class SupplierOrderService {
           return true;
           
         } catch (e) {
-          print('Error parsing response: $e');
           _showSnackbar(context, 'Order created but response parsing failed', Colors.orange);
           return true;
         }
         
       } else if (response.statusCode == 400) {
         final responseBody = await response.stream.bytesToString();
-        print('400 Response Body: $responseBody');
         
         String errorMessage = 'Bad request error occurred';
         try {
@@ -166,7 +148,6 @@ class SupplierOrderService {
             }
           }
         } catch (e) {
-          print('Error parsing 400 response: $e');
         }
         
         _showSnackbar(context, errorMessage, Colors.red);
@@ -188,14 +169,12 @@ class SupplierOrderService {
         
       } else {
         final responseBody = await response.stream.bytesToString();
-        print('Error Response Body: $responseBody');
         final String errorMessage = response.reasonPhrase ?? 'Unknown error occurred';
         _showSnackbar(context, errorMessage, Colors.red);
         return null;
       }
       
     } catch (e) {
-      print('Error creating supplier order: $e');
       _showSnackbar(context, 'Network error: ${e.toString()}', Colors.red);
       return null;
     }

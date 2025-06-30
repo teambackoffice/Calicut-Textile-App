@@ -6,14 +6,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class ProductService {
-  static const String baseUrl = 'https://calicuttextiles.tbo365.cloud/api/method/calicut_textiles.api.auth.create_product';
+  static const String baseUrl = 'https://erp.calicuttextiles.com/api/method/calicut_textiles.api.auth.create_product';
   
   static Future<bool?> createProduct({
     required Product product,
     required BuildContext context,
   }) async {
     final uri = Uri.parse(baseUrl);
-    print(uri);
      // Get API key from secure storage
     final apiKey = await const FlutterSecureStorage().read(key: 'api_key');
     
@@ -43,30 +42,18 @@ class ProductService {
         }
       }
       
-      print('Request Fields:');
       request.fields.forEach((key, value) {
-        print('$key: $value');
       });
 
-      print('Attached Files:');
       for (var file in request.files) {
-        print('Field: ${file.field}, Filename: ${file.filename}');
       }
 
       final response = await request.send();
-      print('--- REQUEST DEBUG INFO ---');
-      print('URL: ${request.url}');
-      print('METHOD: ${request.method}');
-      print('HEADERS: ${request.headers}');
-      print('FIELDS:');
+    
       request.fields.forEach((key, value) {
-        print('$key: $value');
       });
-      print('FILES:');
       for (var file in request.files) {
-        print('Field: ${file.field}, Filename: ${file.filename}, ContentType: ${file.contentType}, Length: ${file.length}');
       }
-      print('--------------------------');
       
       final responseBody = await response.stream.bytesToString();
 
@@ -93,7 +80,6 @@ class ProductService {
         return null;
       }
     } catch (e) {
-      print('Error creating product: $e');
       _showSnackbar(context, 'Network error: ${e.toString()}', Colors.red);
       return null;
     }

@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class LoginService {
-  final String baseUrl = 'https://calicuttextiles.tbo365.cloud/api/method/calicut_textiles.api.auth.user_login';
+  final String baseUrl = 'https://erp.calicuttextiles.com/api/method/calicut_textiles.api.auth.user_login';
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   Future<bool> login(String username, String password) async {
