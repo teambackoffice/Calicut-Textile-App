@@ -809,7 +809,16 @@ Widget _buildSupplierDropdown() {
           fontSize: 16,
         ),
       ),
-      trailing: const Icon(Icons.arrow_drop_down),
+      
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_selectedSupplierName.isNotEmpty)
+            
+            
+          const Icon(Icons.arrow_drop_down),
+        ],
+      ),
       onTap: () => _showSupplierSearchDialog(),
     ),
   );
@@ -817,23 +826,27 @@ Widget _buildSupplierDropdown() {
 Future<void> _showSupplierSearchDialog() async {
   TextEditingController searchController = TextEditingController();
   List<Supplier> filteredSuppliers = List.from(_availableSuppliers);
+  bool isSearching = false;
+  String? searchError;
   
   await showDialog(
     context: context,
     builder: (BuildContext context) {
       return StatefulBuilder(
-        builder: (context, setState) {
+        builder: (context, setDialogState) {
           return Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Container(
               width: MediaQuery.of(context).size.width * 0.9,
-              height: MediaQuery.of(context).size.height * 0.6,
+              height: MediaQuery.of(context).size.height * 0.7,
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
                   // Header
                   Row(
                     children: [
+                      const Icon(Icons.business, color: Color(0xFF3B82F6)),
+                      const SizedBox(width: 8),
                       const Text(
                         'Select Supplier',
                         style: TextStyle(
@@ -854,54 +867,273 @@ Future<void> _showSupplierSearchDialog() async {
                   TextField(
                     controller: searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search suppliers...',
-                      prefixIcon: const Icon(Icons.search),
+                      hintText: 'Search suppliers by name or ID...',
+                      prefixIcon: isSearching 
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: Padding(
+                                padding: EdgeInsets.all(12.0),
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : const Icon(Icons.search),
+                      suffixIcon: searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                searchController.clear();
+                                setDialogState(() {
+                                  filteredSuppliers = List.from(_availableSuppliers);
+                                  searchError = null;
+                                });
+                              },
+                            )
+                          : null,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
+                      errorText: searchError,
                     ),
-                    onChanged: (value) {
-                      setState(() {
-                        filteredSuppliers = _availableSuppliers
-                            .where((supplier) => supplier.supplierName
-                                .toLowerCase()
-                                .contains(value.toLowerCase()))
-                            .toList();
+                    onChanged: (value) async {
+                      if (value.trim().isEmpty) {
+                        setDialogState(() {
+                          filteredSuppliers = List.from(_availableSuppliers);
+                          searchError = null;
+                        });
+                        return;
+                      }
+
+                      // Debounce search - wait 500ms after user stops typing
+                      await Future.delayed(const Duration(milliseconds: 500));
+                      
+                      // Check if the search query is still the same
+                      if (searchController.text.trim() != value.trim()) return;
+
+                      setDialogState(() {
+                        isSearching = true;
+                        searchError = null;
                       });
+
+                      try {
+                        // Create a temporary controller for search
+                        final tempController = SuppliersController();
+                        
+                        // Search using the API
+                        await tempController.searchSuppliers(value.trim());
+                        
+                        if (tempController.hasError) {
+                          setDialogState(() {
+                            searchError = 'Search failed. Please try again.';
+                            isSearching = false;
+                          });
+                        } else {
+                          setDialogState(() {
+                            filteredSuppliers = tempController.suppliers;
+                            isSearching = false;
+                          });
+                        }
+                      } catch (e) {
+                        setDialogState(() {
+                          searchError = 'Search failed: ${e.toString()}';
+                          isSearching = false;
+                        });
+                      }
                     },
                   ),
                   const SizedBox(height: 16),
                   
+                  // Results Count
+                  if (!isSearching)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${filteredSuppliers.length} suppliers found',
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  
                   // Suppliers List
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: filteredSuppliers.length,
-                      itemBuilder: (context, index) {
-                        final supplier = filteredSuppliers[index];
-                        final isSelected = supplier.supplierId == _selectedSupplierId;
-                        
-                        return ListTile(
-                          title: Text(
-                            supplier.supplierName,
-                            style: TextStyle(
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? const Color(0xFF3B82F6) : Colors.black,
+                    child: filteredSuppliers.isEmpty && !isSearching
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  searchController.text.isNotEmpty 
+                                      ? Icons.search_off 
+                                      : Icons.business_outlined,
+                                  size: 64,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  searchController.text.isNotEmpty
+                                      ? 'No suppliers found for "${searchController.text}"'
+                                      : 'No suppliers available',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 16,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                if (searchController.text.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Try searching with different keywords',
+                                    style: TextStyle(
+                                      color: Colors.grey[500],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ]
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: filteredSuppliers.length,
+                            itemBuilder: (context, index) {
+                              final supplier = filteredSuppliers[index];
+                              final isSelected = supplier.supplierId == _selectedSupplierId;
+                              
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                elevation: isSelected ? 2 : 0,
+                                color: isSelected ? const Color(0xFFEFF6FF) : null,
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor: isSelected 
+                                        ? const Color(0xFF3B82F6)
+                                        : Colors.grey[200],
+                                    child: Icon(
+                                      isSelected 
+                                          ? Icons.check
+                                          : Icons.business,
+                                      color: isSelected 
+                                          ? Colors.white
+                                          : Colors.grey[600],
+                                    ),
+                                  ),
+                                  title: Text(
+                                    supplier.supplierName,
+                                    style: TextStyle(
+                                      fontWeight: isSelected 
+                                          ? FontWeight.bold 
+                                          : FontWeight.w500,
+                                      color: isSelected 
+                                          ? const Color(0xFF3B82F6) 
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'ID: ${supplier.supplierId}',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      if (supplier.supplierGroup.isNotEmpty)
+                                        Container(
+                                          margin: const EdgeInsets.only(top: 4),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue[50],
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: Colors.blue[200]!,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            supplier.supplierGroup,
+                                            style: TextStyle(
+                                              color: Colors.blue[700],
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  trailing: isSelected
+                                      ? const Icon(
+                                          Icons.check_circle,
+                                          color: Color(0xFF3B82F6),
+                                        )
+                                      : const Icon(
+                                          Icons.radio_button_unchecked,
+                                          color: Colors.grey,
+                                        ),
+                                  onTap: () {
+                                    this.setState(() {
+                                      _selectedSupplierId = supplier.supplierId;
+                                      _selectedSupplierName = supplier.supplierName;
+                                    });
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  
+                  // Bottom actions
+                  if (searchController.text.isNotEmpty && !isSearching)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                searchController.clear();
+                                setDialogState(() {
+                                  filteredSuppliers = List.from(_availableSuppliers);
+                                  searchError = null;
+                                });
+                              },
+                              icon: const Icon(Icons.clear),
+                              label: const Text('Clear Search'),
                             ),
                           ),
-                          leading: isSelected 
-                              ? const Icon(Icons.check_circle, color: Color(0xFF3B82F6))
-                              : const Icon(Icons.radio_button_unchecked, color: Colors.grey),
-                          onTap: () {
-                            this.setState(() {
-                              _selectedSupplierId = supplier.supplierId;
-                              _selectedSupplierName = supplier.supplierName;
-                            });
-                            Navigator.pop(context);
-                          },
-                        );
-                      },
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                // Load more suppliers if needed
+                                final supplierController = Provider.of<SuppliersController>(
+                                  context, 
+                                  listen: false,
+                                );
+                                if (supplierController.hasMore && !supplierController.isLoading) {
+                                  await supplierController.loadMoreSuppliers();
+                                  setDialogState(() {
+                                    filteredSuppliers = supplierController.suppliers;
+                                  });
+                                }
+                              },
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Load More'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
