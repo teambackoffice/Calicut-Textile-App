@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:calicut_textile_app/modal/get_supplier_orders.dart' as OrderModel;
 
 class UpdateSupplierOrderService {
-  static const String baseUrl = 'https://calicuttextiles.tbo365.cloud/api/method/calicut_textiles.api.auth.update_supplier_order';
+  static const String baseUrl = 'https://erp.calicuttextiles.com/api/method/calicut_textiles.api.auth.update_supplier_order';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   static Future<bool?> updateSupplierOrder({

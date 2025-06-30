@@ -69,7 +69,8 @@ class SupplierDetails extends StatelessWidget {
                   
                   
                   // Address Card
-                  Card(
+                supplier.address == null
+                  ? Center(child: Text("Address not available", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),)): Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -118,7 +119,7 @@ class SupplierDetails extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            supplier.address,
+                            supplier.address!,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -129,7 +130,7 @@ class SupplierDetails extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
+                  ) ,
                   
                   const SizedBox(height: 24),
                   
