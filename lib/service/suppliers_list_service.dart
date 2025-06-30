@@ -5,10 +5,7 @@ import 'package:http/http.dart' as http;
 class SuppliersListService {
   final String baseUrl = 'https://calicuttextiles.tbo365.cloud/api/method/calicut_textiles.api.auth.get_all_supplier_details_with_searh';
   
-  final Map<String, String> _defaultHeaders = {
-    'Cookie': 'full_name=najath; sid=66486d16f52af5e792350c8927a98c361addf3166e3fea20c25d946f; system_user=yes; user_id=najath%40gmail.com; user_image=',
-    'Content-Type': 'application/json',
-  };
+  
 
   Future<SuppliersResponse> getSuppliers({
     required int page,
@@ -39,7 +36,7 @@ class SuppliersListService {
 
     try {
       final request = http.Request('GET', uri);
-      request.headers.addAll(_defaultHeaders);
+   
       
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();

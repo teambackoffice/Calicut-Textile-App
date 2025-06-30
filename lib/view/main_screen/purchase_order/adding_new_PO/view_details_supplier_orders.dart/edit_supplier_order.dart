@@ -675,98 +675,245 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
   }
 
   Widget _buildProductDropdown(int index) {
-    // Ensure selected product exists in available products or set to null
-    String? validSelectedProduct;
-    if (_productControllers[index].selectedProductName.isNotEmpty) {
-      final productExists = _availableProducts.any(
-        (product) => product.name == _productControllers[index].selectedProductName
-      );
-      if (productExists) {
-        validSelectedProduct = _productControllers[index].selectedProductName;
-      }
-    }
-
-    return DropdownButtonFormField<String>(
-      value: validSelectedProduct,
-      decoration: InputDecoration(
-        labelText: 'Product Name',
-        prefixIcon: const Icon(Icons.shopping_bag, color: Color(0xFF3B82F6)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      items: _availableProducts.map((product) => DropdownMenuItem(
-        value: product.name,
-        child: Text(product.name),
-      )).toList(),
-      onChanged: (value) {
-        if (value != null) {
-          setState(() {
-            _productControllers[index].selectedProductName = value;
-            _productControllers[index].productController.text = value;
-            
-            // Only auto-fill UOM from product data, not rate
-            final selectedProduct = _availableProducts.firstWhere(
-              (product) => product.name == value,
-              orElse: () => _availableProducts.first,
-            );
-            
-            // Convert UOM from string to enum and update the controller
-          });
-          // No need to calculate amount as rate is not auto-filled
-        }
-      },
-      validator: (value) => value == null || value.isEmpty ? 'Product is required' : null,
-    );
-  }
-
-  Widget _buildSupplierDropdown() {
-    // Ensure selected supplier exists in available suppliers or set to null
-    String? validSelectedSupplier;
-    if (_selectedSupplierId.isNotEmpty) {
-      final supplierExists = _availableSuppliers.any(
-        (supplier) => supplier?.supplierId == _selectedSupplierId
-      );
-      if (supplierExists) {
-        validSelectedSupplier = _selectedSupplierId;
-      }
-    }
-
-    return DropdownButtonFormField<String>(
-      isExpanded: true,
-      value: validSelectedSupplier,
-      decoration: InputDecoration(
-        labelText: 'Supplier',
-        prefixIcon: const Icon(Icons.business, color: Color(0xFF3B82F6)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        helperStyle: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-      ),
-      hint: const Text('Select Supplier'),
-      items: _availableSuppliers.map((supplier) => DropdownMenuItem(
-        value: supplier?.supplierId, // This is actually the supplier ID
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              supplier.supplierName, // Display supplier name
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ],
+  final selectedProductName = _productControllers[index].selectedProductName;
+  
+  return Container(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+    ),
+    child: ListTile(
+      leading: const Icon(Icons.shopping_bag, color: Color(0xFF3B82F6)),
+      title: Text(
+        selectedProductName.isEmpty ? 'Select Product' : selectedProductName,
+        style: TextStyle(
+          color: selectedProductName.isEmpty ? Colors.grey : Colors.black,
+          fontSize: 16,
         ),
-      )).toList(),
-      onChanged: (value) {
-        if (value != null) {
-          final selectedSupplier = _availableSuppliers.firstWhere(
-            (supplier) => supplier.supplierId == value, // value is the supplier ID
+      ),
+      trailing: const Icon(Icons.arrow_drop_down),
+      onTap: () => _showProductSearchDialog(index),
+    ),
+  );
+}
+Future<void> _showProductSearchDialog(int index) async {
+  TextEditingController searchController = TextEditingController();
+  List<Datum> filteredProducts = List.from(_availableProducts);
+  
+  await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: MediaQuery.of(context).size.height * 0.6,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      const Text(
+                        'Select Product',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Search Field
+                  TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search products...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        filteredProducts = _availableProducts
+                            .where((product) => product.name
+                                .toLowerCase()
+                                .contains(value.toLowerCase()))
+                            .toList();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Products List
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filteredProducts.length,
+                      itemBuilder: (context, listIndex) {
+                        final product = filteredProducts[listIndex];
+                        final isSelected = product.name == _productControllers[index].selectedProductName;
+                        
+                        return ListTile(
+                          title: Text(
+                            product.name,
+                            style: TextStyle(
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? const Color(0xFF3B82F6) : Colors.black,
+                            ),
+                          ),
+                          leading: isSelected 
+                              ? const Icon(Icons.check_circle, color: Color(0xFF3B82F6))
+                              : const Icon(Icons.radio_button_unchecked, color: Colors.grey),
+                          onTap: () {
+                            this.setState(() {
+                              _productControllers[index].selectedProductName = product.name;
+                              _productControllers[index].productController.text = product.name;
+                            });
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
           );
-          setState(() {
-            _selectedSupplierId = value; // Store the ID
-            _selectedSupplierName = selectedSupplier.supplierName; // Store the name
-          });
-        }
-      },
-      validator: (value) => value == null ? 'Supplier is required' : null,
-    );
-  }
+        },
+      );
+    },
+  );
+}
+
+Widget _buildSupplierDropdown() {
+  return Container(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+    ),
+    child: ListTile(
+      leading: const Icon(Icons.business, color: Color(0xFF3B82F6)),
+      title: Text(
+        _selectedSupplierName.isEmpty ? 'Select Supplier' : _selectedSupplierName,
+        style: TextStyle(
+          color: _selectedSupplierName.isEmpty ? Colors.grey : Colors.black,
+          fontSize: 16,
+        ),
+      ),
+      trailing: const Icon(Icons.arrow_drop_down),
+      onTap: () => _showSupplierSearchDialog(),
+    ),
+  );
+}
+Future<void> _showSupplierSearchDialog() async {
+  TextEditingController searchController = TextEditingController();
+  List<Supplier> filteredSuppliers = List.from(_availableSuppliers);
+  
+  await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: MediaQuery.of(context).size.height * 0.6,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      const Text(
+                        'Select Supplier',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Search Field
+                  TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search suppliers...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        filteredSuppliers = _availableSuppliers
+                            .where((supplier) => supplier.supplierName
+                                .toLowerCase()
+                                .contains(value.toLowerCase()))
+                            .toList();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Suppliers List
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filteredSuppliers.length,
+                      itemBuilder: (context, index) {
+                        final supplier = filteredSuppliers[index];
+                        final isSelected = supplier.supplierId == _selectedSupplierId;
+                        
+                        return ListTile(
+                          title: Text(
+                            supplier.supplierName,
+                            style: TextStyle(
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? const Color(0xFF3B82F6) : Colors.black,
+                            ),
+                          ),
+                          leading: isSelected 
+                              ? const Icon(Icons.check_circle, color: Color(0xFF3B82F6))
+                              : const Icon(Icons.radio_button_unchecked, color: Colors.grey),
+                          onTap: () {
+                            this.setState(() {
+                              _selectedSupplierId = supplier.supplierId;
+                              _selectedSupplierName = supplier.supplierName;
+                            });
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+
+
 
   Widget _buildGrandTotalCard() {
     return Card(
