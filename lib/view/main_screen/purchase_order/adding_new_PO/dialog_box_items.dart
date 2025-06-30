@@ -197,15 +197,22 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
       
       List<Item> apiItems = productController.products.map((datum) => Item.fromDatum(datum)).toList();
       
-      _allItems = [
-        ...apiItems,
-        ...(widget.existingItems ?? []),
-      ];
+      setState(() {
+        _allItems = [
+          ...apiItems,
+          ...(widget.existingItems ?? []),
+        ];
+        _filteredItems = _allItems;
+      });
       
-      _filteredItems = _allItems;
+      print("Loaded ${_allItems.length} items total (${apiItems.length} from API, ${widget.existingItems?.length ?? 0} existing)");
     } catch (e) {
-      _allItems = widget.existingItems ?? [];
-      _filteredItems = _allItems;
+      print("Error loading products: $e");
+      
+      setState(() {
+        _allItems = widget.existingItems ?? [];
+        _filteredItems = _allItems;
+      });
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -235,6 +242,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
             .toList();
       }
     });
+    print("Filtered ${_filteredItems.length} items for query: '$query'");
   }
 
   void _selectItemFromSearch(Item item) {
@@ -660,11 +668,34 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                 ),
                 const SizedBox(height: 16),
                 
-                // Search Results
-                if (_searchController.text.isNotEmpty) ...[
+                // Show loading indicator while products are being loaded
+                if (_isLoadingProducts) ...[
+                  Container(
+                    height: 200,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text(
+                            'Loading products...',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // Show items list - either filtered results or all items when search is empty
                   if (_filteredItems.isNotEmpty) ...[
                     Text(
-                      'Search Results (${_filteredItems.length} items found)',
+                      _searchController.text.isNotEmpty 
+                        ? 'Search Results (${_filteredItems.length} items found)'
+                        : 'Available Items (${_filteredItems.length} items)',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -697,12 +728,25 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                                   fontSize: 16,
                                 ),
                               ),
-                              subtitle: Text(
-                                'Code: ${item.code}',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Code: ${item.code}',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  if (item.selectedUOM.isNotEmpty)
+                                    Text(
+                                      'UOM: ${item.selectedUOM}',
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                ],
                               ),
                               trailing: Icon(
                                 Icons.arrow_forward_ios,
@@ -716,39 +760,85 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                       ),
                     ),
                   ] else ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No items found for "${_searchController.text}"',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
+                    // Show this only when search returns no results AND user has typed something
+                    if (_searchController.text.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No items found for "${_searchController.text}"',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: _createNewItem,
-                            icon: Icon(Icons.add),
-                            label: Text('Create New Item'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _createNewItem,
+                              icon: Icon(Icons.add),
+                              label: Text('Create New Item'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      // Show this when no items are loaded at all (empty state)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[400]),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No items available',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Start by creating your first item',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _createNewItem,
+                              icon: Icon(Icons.add),
+                              label: Text('Create New Item'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ],
