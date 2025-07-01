@@ -94,7 +94,6 @@ class UpdateSupplierOrderService {
         return null;
       }
     } catch (e) {
-      print("Error: $e ");
       _showSnackbar(context, 'Network error: ${e.toString()}', Colors.red);
       return null;
     }

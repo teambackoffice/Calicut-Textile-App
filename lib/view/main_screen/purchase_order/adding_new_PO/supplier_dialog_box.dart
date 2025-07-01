@@ -129,24 +129,24 @@ class _SupplierDialogBoxState extends State<SupplierDialogBox> {
                         size: 24,
                       ),
                       // Filter toggle button
-                      GestureDetector(
-                        onTap: _toggleGroupFilter,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          margin: const EdgeInsets.only(right: 8),
-                          decoration: BoxDecoration(
-                            color: showGroupFilter 
-                                ? Colors.white.withOpacity(0.3)
-                                : Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Icon(
-                            Icons.filter_list,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
+                      // GestureDetector(
+                      //   onTap: _toggleGroupFilter,
+                      //   child: Container(
+                      //     padding: const EdgeInsets.all(6),
+                      //     margin: const EdgeInsets.only(right: 8),
+                      //     decoration: BoxDecoration(
+                      //       color: showGroupFilter 
+                      //           ? Colors.white.withOpacity(0.3)
+                      //           : Colors.white.withOpacity(0.2),
+                      //       borderRadius: BorderRadius.circular(20),
+                      //     ),
+                      //     child: Icon(
+                      //       Icons.filter_list,
+                      //       color: Colors.white,
+                      //       size: 18,
+                      //     ),
+                      //   ),
+                      // ),
                       // Clear filters button
                       if (controller.searchQuery.isNotEmpty || controller.selectedGroup != null)
                         GestureDetector(

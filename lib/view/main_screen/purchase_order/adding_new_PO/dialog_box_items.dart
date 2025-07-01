@@ -41,7 +41,7 @@ class Item {
     return Item(
       code: datum.name,
       name: datum.productName,
-      selectedUOM: datum.uom,
+      selectedUOM: datum.uom ?? '',
       rate: datum.rate,
       quantity: datum.quantity,
       pcs: datum.pcs,
