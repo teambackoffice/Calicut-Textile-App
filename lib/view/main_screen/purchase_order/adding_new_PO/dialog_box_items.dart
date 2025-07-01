@@ -246,45 +246,47 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   }
 
   void _selectItemFromSearch(Item item) {
-    setState(() {
-      _selectedItem = item;
-      _showItemForm = true;
-      _isCreatingNew = false;
-      _showSimpleForm = false;
-      
-      // Set basic item details
-      widget.itemCodeController.text = item.code;
-      widget.itemNameController.text = item.name;
-      
-      // Validate UOM exists in options before setting
-      if (item.selectedUOM.isNotEmpty && widget.UomOptions.contains(item.selectedUOM)) {
-        _selectedUOM = item.selectedUOM;
-      } else {
-        _selectedUOM = null;
-      }
-      
-      // Clear form fields for user input
-      widget.quantityController.clear();
-      widget.pcsController.clear();
-      widget.rateController.clear();
-      widget.colorController.clear();
-      netQtyController.clear();
-      totalAmountController.clear();
-      
-      // Clear images
-      _selectedImages.clear();
-      _selectedImagePaths.clear();
-      _updateImageCount();
-    });
+  setState(() {
+    _selectedItem = item;
+    _showItemForm = true;
+    _isCreatingNew = false;
+    _showSimpleForm = false;
     
-    if (widget.onUOMSelected != null && _selectedUOM != null) {
-      widget.onUOMSelected!(_selectedUOM!);
+    // Set basic item details
+    widget.itemCodeController.text = item.code;
+    widget.itemNameController.text = item.name;
+    
+    // Validate UOM exists in options before setting
+    if (item.selectedUOM.isNotEmpty && widget.UomOptions.contains(item.selectedUOM)) {
+      _selectedUOM = item.selectedUOM;
+    } else {
+      _selectedUOM = null;
     }
     
-    if (widget.onCreationModeChanged != null) {
-      widget.onCreationModeChanged!(false);
-    }
+    // Clear form fields for user input
+    widget.quantityController.clear();
+    widget.pcsController.clear();
+    widget.rateController.clear();
+    widget.colorController.clear();
+    netQtyController.clear();
+    totalAmountController.clear();
+    
+    // Clear images
+    _selectedImages.clear();
+    _selectedImagePaths.clear();
+    _updateImageCount();
+  });
+  
+  // Always notify parent about the UOM - either selected or item's UOM
+  final finalUOM = _selectedUOM ?? item.selectedUOM;
+  if (widget.onUOMSelected != null && finalUOM.isNotEmpty) {
+    widget.onUOMSelected!(finalUOM);
   }
+  
+  if (widget.onCreationModeChanged != null) {
+    widget.onCreationModeChanged!(false);
+  }
+}
 
   // Show simple creation form
   void _createNewItem() {
@@ -462,31 +464,47 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   }
 
   // Add item with current form data
- void _addCurrentItem() {
+// Add item with current form data
+// Add item with current form data - CORRECTED VERSION
+// Add item with current form data - CORRECTED VERSION WITH CALLBACK
+void _addCurrentItem() {
   if (widget.formKey.currentState!.validate()) {
+    // CRITICAL: Use selected UOM if user changed it, otherwise use item's original UOM
+    final finalUOM = _selectedUOM ?? _selectedItem?.selectedUOM ?? '';
+    
+    print("Debug UOM selection:");
+    print("  _selectedUOM: $_selectedUOM");
+    print("  _selectedItem?.selectedUOM: ${_selectedItem?.selectedUOM}");
+    print("  finalUOM: $finalUOM");
+    
+    // Call the UOM callback with the final UOM value
+    if (widget.onUOMSelected != null && finalUOM.isNotEmpty) {
+      widget.onUOMSelected!(finalUOM);
+    }
+    
     final newItem = Item(
       code: _isCreatingNew ? 
         DateTime.now().millisecondsSinceEpoch.toString() :
         _selectedItem!.code,
       name: widget.itemNameController.text,
       color: widget.colorController.text.isEmpty ? null : widget.colorController.text,
-      selectedUOM: _selectedUOM ?? '',
+      selectedUOM: finalUOM, // This will now properly include item's UOM as fallback
       rate: double.tryParse(widget.rateController.text),
       quantity: double.tryParse(widget.quantityController.text),
       pcs: double.tryParse(widget.pcsController.text),
       netQty: double.tryParse(netQtyController.text),
       totalAmount: double.tryParse(totalAmountController.text),
-      // UPDATED: Pass the actual image paths
       image1: _selectedImagePaths.isNotEmpty ? _selectedImagePaths[0] : null,
       image2: _selectedImagePaths.length > 1 ? _selectedImagePaths[1] : null,
       image3: _selectedImagePaths.length > 2 ? _selectedImagePaths[2] : null,
     );
     
+    print("Created item with UOM: ${newItem.selectedUOM}");
+    
     widget.onItemCreated(newItem);
     Navigator.pop(context);
   }
 }
-
   // Image handling methods with camera support
   Future<void> _pickImages() async {
     showModalBottomSheet(
@@ -724,13 +742,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'Code: ${item.selectedUOM}',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 14,
-                                    ),
-                                  ),
+                                  
                                   if (item.selectedUOM.isNotEmpty)
                                     Text(
                                       'UOM: ${item.selectedUOM}',
@@ -874,7 +886,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                   child: DropdownButtonFormField<String>(
                     isExpanded: true,
                     value: _selectedUOM,
-                    hint: const Text('Select UOM'),
+                    // hint: const Text('Select UOM'),
                     onChanged: (value) {
                       setState(() {
                         _selectedUOM = value;
@@ -1066,31 +1078,68 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                 ),
 
                 // UOM
-                _buildFormField(
-                  label: 'Unit of Measurement *',
-                  child: DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: _selectedUOM,
-                    hint: const Text('Select UOM'),
-                    validator: (value) => value == null ? 'Please select UOM' : null,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedUOM = value;
-                      });
-                      if (widget.onUOMSelected != null && value != null) {
-                        widget.onUOMSelected!(value);
-                      }
-                    },
-                    items: widget.UomOptions.map((uom) {
-                      return DropdownMenuItem<String>(
-                        value: uom,
-                        child: Text(uom),
-                      );
-                    }).toList(),
-                    decoration: _getInputDecoration('Change UOM if needed'),
+              _buildFormField(
+  label: 'Unit of Measurement *',
+  child: DropdownButtonFormField<String>(
+    isExpanded: true,
+    value: _selectedUOM,
+    hint: Text(_selectedItem?.selectedUOM ?? 'Select UOM'),
+    validator: (value) {
+      // If user hasn't selected anything, check if item has UOM
+      if (value == null) {
+        if (_selectedItem?.selectedUOM != null && _selectedItem!.selectedUOM.isNotEmpty) {
+          return null; // Valid - will use item's UOM
+        } else {
+          return 'Please select UOM'; // Invalid - no UOM available
+        }
+      }
+      return null; // Valid - user selected something
+    },
+    onChanged: (value) {
+  setState(() {
+    _selectedUOM = value;
+  });
+  
+      if (widget.onUOMSelected != null && value != null) {
+        widget.onUOMSelected!(value);
+      }
+    },
+    items: widget.UomOptions.map((uom) {
+      return DropdownMenuItem<String>(
+        value: uom,
+        child: Row(
+          children: [
+            Text(uom),
+            // Show indicator if this is the item's original UOM
+            if (uom == _selectedItem?.selectedUOM) ...[
+              SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Item UOM',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.blue.shade700,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-
+              ),
+            ],
+          ],
+        ),
+      );
+    }).toList(),
+    decoration: _getInputDecoration(
+      _selectedItem?.selectedUOM != null && _selectedItem!.selectedUOM.isNotEmpty
+        ? 'Item UOM: ${_selectedItem!.selectedUOM} (tap to change)' 
+        : 'Change UOM if needed'
+    ),
+  ),
+),
                 // Rate
                 _buildFormField(
                   label: 'Rate *',

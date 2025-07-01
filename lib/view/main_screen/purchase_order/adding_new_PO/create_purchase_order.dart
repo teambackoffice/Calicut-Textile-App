@@ -176,52 +176,56 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     }
   }
 
-  void _handleItemCreated(Item item) {
-    // Extract image paths from the item
-    List<String> itemImages = [];
-    if (item.image1 != null) itemImages.add(item.image1!);
-    if (item.image2 != null) itemImages.add(item.image2!);
-    if (item.image3 != null) itemImages.add(item.image3!);
+ void _handleItemCreated(Item item) {
+  // Extract image paths from the item
+  List<String> itemImages = [];
+  if (item.image1 != null) itemImages.add(item.image1!);
+  if (item.image2 != null) itemImages.add(item.image2!);
+  if (item.image3 != null) itemImages.add(item.image3!);
 
-    setState(() {
-      items.add(PurchaseOrderItem(
-        itemCode: item.code,
-        itemName: item.name,
-        quantity: item.quantity?.toInt() ?? 1,
-        pcs: item.pcs,
-        netQty: item.netQty,
-        rate: item.rate ?? 0.0,
-        color: item.color ?? '',
-        uom: item.selectedUOM,
-        imageCount: itemImages.length, // Use actual image count
-        imagePaths: itemImages, // NEW: Store the actual image paths
-        amount: item.totalAmount ?? 0.0,
-      ));
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '${item.name} added to purchase order with ${itemImages.length} image(s)',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
+  // Use the same fallback logic as in _addCurrentItem
+  // If selectedUOM is empty, we need to get it from the original item's UOM
+  // Since we don't have access to _selectedUOM here, we'll use the item's selectedUOM
+  // But we need to ensure the Item object itself has the correct UOM
+  final finalUOM = item.selectedUOM.isNotEmpty ? item.selectedUOM : '';
+
+  setState(() {
+    items.add(PurchaseOrderItem(
+      itemCode: item.code,
+      itemName: item.name,
+      quantity: item.quantity?.toInt() ?? 1,
+      pcs: item.pcs,
+      netQty: item.netQty,
+      rate: item.rate ?? 0.0,
+      color: item.color ?? '',
+      uom: finalUOM, // Use the final UOM with fallback
+      imageCount: itemImages.length,
+      imagePaths: itemImages,
+      amount: item.totalAmount ?? 0.0,
+    ));
+  });
+  
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(Icons.check_circle, color: Colors.white, size: 20),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${item.name} added to purchase order with ${itemImages.length} image(s)',
+              style: TextStyle(fontWeight: FontWeight.w500),
             ),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ],
       ),
-    );
-  }
-
-
+      backgroundColor: Colors.green,
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+  );
+}
 
   void _clearForm() {
     _itemCodeController.clear();
