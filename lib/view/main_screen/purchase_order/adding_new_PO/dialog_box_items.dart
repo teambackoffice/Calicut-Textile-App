@@ -447,14 +447,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
       _showError('Please select UOM');
       return false;
     }
-    if (widget.quantityController.text.isEmpty || double.tryParse(widget.quantityController.text) == null) {
-      _showError('Please enter valid quantity');
-      return false;
-    }
-    if (widget.rateController.text.isEmpty || double.tryParse(widget.rateController.text) == null) {
-      _showError('Please enter valid rate');
-      return false;
-    }
+    
     return true;
   }
 
@@ -732,7 +725,7 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Code: ${item.code}',
+                                    'Code: ${item.selectedUOM}',
                                     style: TextStyle(
                                       color: Colors.grey[600],
                                       fontSize: 14,
@@ -901,40 +894,40 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
                 ),
 
                 // Quantity
-                _buildFormField(
-                  label: 'Quantity *',
-                  child: TextFormField(
-                    controller: widget.quantityController,
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    decoration: _getInputDecoration('0'),
-                  ),
-                ),
+                // _buildFormField(
+                //   label: 'Quantity *',
+                //   child: TextFormField(
+                //     controller: widget.quantityController,
+                //     keyboardType: TextInputType.numberWithOptions(decimal: true),
+                //     decoration: _getInputDecoration('0'),
+                //   ),
+                // ),
 
                 // Rate
-                _buildFormField(
-                  label: 'Rate *',
-                  child: TextFormField(
-                    controller: widget.rateController,
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    decoration: _getInputDecoration('0.00').copyWith(
-                      prefixText: '₹ ',
-                    ),
-                  ),
-                ),
+                // _buildFormField(
+                //   label: 'Rate *',
+                //   child: TextFormField(
+                //     controller: widget.rateController,
+                //     keyboardType: TextInputType.numberWithOptions(decimal: true),
+                //     decoration: _getInputDecoration('0.00').copyWith(
+                //       prefixText: '₹ ',
+                //     ),
+                //   ),
+                // ),
 
-                // Total Amount (calculated)
-                _buildFormField(
-                  label: 'Total Amount (Qty × Rate)',
-                  child: TextFormField(
-                    controller: totalAmountController,
-                    readOnly: true,
-                    decoration: _getInputDecoration('Calculated automatically').copyWith(
-                      fillColor: Colors.grey[50],
-                      filled: true,
-                      prefixText: '₹ ',
-                    ),
-                  ),
-                ),
+                // // Total Amount (calculated)
+                // _buildFormField(
+                //   label: 'Total Amount (Qty × Rate)',
+                //   child: TextFormField(
+                //     controller: totalAmountController,
+                //     readOnly: true,
+                //     decoration: _getInputDecoration('Calculated automatically').copyWith(
+                //       fillColor: Colors.grey[50],
+                //       filled: true,
+                //       prefixText: '₹ ',
+                //     ),
+                //   ),
+                // ),
 
                 // Create Button
                 const SizedBox(height: 24),

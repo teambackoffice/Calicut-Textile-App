@@ -143,56 +143,16 @@ class Product {
 }
 
 enum Uom {
-  EMPTY,
-  KG,
   NOS,
-  UNIT,
-  BOX,
-  PAIR,
-  SET,
   METER,
-  BARLEYCORN,
-  CALIBRE,
-  CABLE_LENGTH_UK,
-  CABLE_LENGTH_US,
-  CABLE_LENGTH,
-  CENTIMETER,
-  CHAIN,
-  DECIMETER,
-  ELLS_UK,
-  EMS_PICA,
-  FATHOM,
-  FOOT,
-  FURLONG,
-  HAND,
-  HECTOMETER,
+  
 }
 
 
 final uomValues = EnumValues({
-  "": Uom.EMPTY,
-  "Kg": Uom.KG,
   "Nos": Uom.NOS,
-  "Unit": Uom.UNIT,
-  "Box": Uom.BOX,
-  "Pair": Uom.PAIR,
-  "Set": Uom.SET,
   "Meter": Uom.METER,
-  "Barleycorn": Uom.BARLEYCORN,
-  "Calibre": Uom.CALIBRE,
-  "Cable Length (UK)": Uom.CABLE_LENGTH_UK,
-  "Cable Length (US)": Uom.CABLE_LENGTH_US,
-  "Cable Length": Uom.CABLE_LENGTH,
-  "Centimeter": Uom.CENTIMETER,
-  "Chain": Uom.CHAIN,
-  "Decimeter": Uom.DECIMETER,
-  "Ells (UK)": Uom.ELLS_UK,
-  "Ems (Pica)": Uom.EMS_PICA,
-  "Fathom": Uom.FATHOM,
-  "Foot": Uom.FOOT,
-  "Furlong": Uom.FURLONG,
-  "Hand": Uom.HAND,
-  "Hectometer": Uom.HECTOMETER,
+  
 });
 
 

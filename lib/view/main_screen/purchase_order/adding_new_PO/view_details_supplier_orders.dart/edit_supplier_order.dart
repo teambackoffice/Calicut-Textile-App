@@ -109,7 +109,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
         requiredByController: TextEditingController(
             text: "${product.requiredBy.day}/${product.requiredBy.month}/${product.requiredBy.year}"),
         // Preserve the original UOM from the fetched data
-        selectedUom: product.uom ?? OrderModel.Uom.UNIT,
+        selectedUom: product.uom ?? OrderModel.Uom.NOS,
         selectedProductName: product.product,
       );
     }).toList();
@@ -215,7 +215,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
         netQtyController: TextEditingController(text: '0'),
         amountController: TextEditingController(text: '0'),
         requiredByController: TextEditingController(),
-        selectedUom: OrderModel.Uom.UNIT,
+        selectedUom: OrderModel.Uom.NOS,
         selectedProductName: '',
       ));
     });
@@ -277,7 +277,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
       }
       
       // Check if UOM is selected
-      if (controller.selectedUom == OrderModel.Uom.EMPTY) {
+      if (controller.selectedUom == OrderModel.Uom.NOS) {
         _showValidationError('Please select UOM for Product ${i + 1}.');
         return false;
       }
@@ -1286,7 +1286,7 @@ Future<void> _showSupplierSearchDialog() async {
 
     return DropdownButtonFormField<OrderModel.Uom>(
       isExpanded: true,
-      value: selectedValue == OrderModel.Uom.EMPTY ? null : selectedValue,
+      value: selectedValue == OrderModel.Uom.NOS ? null : selectedValue,
       decoration: InputDecoration(
         labelText: 'UOM',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -1294,7 +1294,7 @@ Future<void> _showSupplierSearchDialog() async {
       ),
       hint: const Text('Select UOM'),
       items: OrderModel.Uom.values
-          .where((uom) => uom != OrderModel.Uom.EMPTY)
+          .where((uom) => uom != OrderModel.Uom.NOS)
           .map((uom) => DropdownMenuItem(
                 value: uom,
                 child: Text(_getUomDisplayText(uom)),
@@ -1302,7 +1302,7 @@ Future<void> _showSupplierSearchDialog() async {
           .toList(),
       onChanged: (value) {
         setState(() {
-          _productControllers[index].selectedUom = value ?? OrderModel.Uom.EMPTY;
+          _productControllers[index].selectedUom = value ?? OrderModel.Uom.NOS;
         });
       },
      validator: (value) => value == null ? 'UOM is required' : null,
@@ -1351,76 +1351,35 @@ Future<void> _showSupplierSearchDialog() async {
 
   String _getUomDisplayText(OrderModel.Uom uom) {
     switch (uom) {
-      case OrderModel.Uom.KG:
-        return 'Kg';
       case OrderModel.Uom.NOS:
         return 'Nos';
-      case OrderModel.Uom.UNIT:
-        return 'Unit';
-      case OrderModel.Uom.BOX:
-        return 'Box';
-      case OrderModel.Uom.PAIR:
-        return 'Pair';
-      case OrderModel.Uom.SET:
-        return 'Set';
       case OrderModel.Uom.METER:
         return 'Meter';
-      case OrderModel.Uom.BARLEYCORN:
-        return 'Barleycorn';
-      case OrderModel.Uom.CALIBRE:
-        return 'Calibre';
-      case OrderModel.Uom.CABLE_LENGTH_UK:
-        return 'Cable Length (UK)';
-      case OrderModel.Uom.CABLE_LENGTH_US:
-        return 'Cable Length (US)';
-      case OrderModel.Uom.CABLE_LENGTH:
-        return 'Cable Length';
-      case OrderModel.Uom.CENTIMETER:
-        return 'Centimeter';
-      case OrderModel.Uom.CHAIN:
-        return 'Chain';
-      case OrderModel.Uom.DECIMETER:
-        return 'Decimeter';
-      case OrderModel.Uom.ELLS_UK:
-        return 'Ells (UK)';
-      case OrderModel.Uom.EMS_PICA:
-        return 'Ems(Pica)';
-      case OrderModel.Uom.FATHOM:
-        return 'Fathom';
-      case OrderModel.Uom.FOOT:
-        return 'Foot';
-      case OrderModel.Uom.FURLONG:
-        return 'Furlong';
-      case OrderModel.Uom.HAND:
-        return 'Hand';
-      case OrderModel.Uom.HECTOMETER:
-        return 'Hectometer';
-      case OrderModel.Uom.EMPTY:
-      default:
+      
         return '';
     }
   }
 
-  OrderModel.Uom _convertStringToUom(String uomString) {
-    switch (uomString.toLowerCase()) {
-      case 'kg':
-        return OrderModel.Uom.KG;
-      case 'nos':
-        return OrderModel.Uom.NOS;
-      case 'unit':
-        return OrderModel.Uom.UNIT;
-      case 'box':
-        return OrderModel.Uom.BOX;
-      case 'pair':
-        return OrderModel.Uom.PAIR;
-      case 'set':
-        return OrderModel.Uom.SET;
-      case 'meter':
-        return OrderModel.Uom.METER;
-      default:
-        return OrderModel.Uom.UNIT;
-    }
-  }
+  // OrderModel.Uom _convertStringToUom(String uomString) {
+  //   switch (uomString.toLowerCase()) {
+  //     case 'kg':
+  //       return OrderModel.Uom.KG;
+  //     case 'nos':
+  //       return OrderModel.Uom.NOS;
+  //     case 'unit':
+  //       return OrderModel.Uom.UNIT;
+  //     case 'box':
+  //       return OrderModel.Uom.BOX;
+  //     case 'pair':
+  //       return OrderModel.Uom.PAIR;
+  //     case 'set':
+  //       return OrderModel.Uom.SET;
+  //     case 'meter':
+  //       return OrderModel.Uom.METER;
+  //     default:
+  //       return OrderModel.Uom.UNIT;
+  //   }
+  // }
 }
 
 class ProductControllers {

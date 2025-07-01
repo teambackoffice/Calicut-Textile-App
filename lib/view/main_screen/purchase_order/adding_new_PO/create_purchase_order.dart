@@ -61,29 +61,11 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   List<String> _allOrderImages = []; 
   
   final List<String> _uomOptions = [
-    'EMPTY',
-    'KG',
+    
+  
     'NOS',
-    'UNIT',
-    'BOX',
-    'PAIR',
-    'SET',
     'METER',
-    'BARLEYCORN',
-    'CALIBRE',
-    'CABLE_LENGTH_UK',
-    'CABLE_LENGTH_US',
-    'CABLE_LENGTH',
-    'CENTIMETER',
-    'CHAIN',
-    'DECIMETER',
-    'ELLS_UK',
-    'EMS_PICA',
-    'FATHOM',
-    'FOOT',
-    'FURLONG',
-    'HAND',
-    'HECTOMETER',
+   
   ].toSet().toList();
   
   bool _isAddingItem = false;
