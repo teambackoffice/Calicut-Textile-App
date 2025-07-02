@@ -15,6 +15,8 @@ class SupplierOrderListService {
 
     try {
       final response = await http.get(url);
+      print(url);
+      print(response.body);
 
       if (response.statusCode == 200) {
         
@@ -25,6 +27,8 @@ class SupplierOrderListService {
         throw Exception('Failed to load supplier orders. Status Code: ${response.statusCode}');
       }
     } catch (e) {
+      print('Error fetching supplier orders: $e');
+
       return [];
     }
   }

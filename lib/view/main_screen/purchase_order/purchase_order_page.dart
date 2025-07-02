@@ -501,7 +501,9 @@ List<dynamic> _getFilteredOrders(List<dynamic> orders) {
                                               ),
                                               Padding(
   padding: const EdgeInsets.only(top: 4),
-  child: Text(
+  child: order.supplier == null ?  SizedBox() :
+  
+   Text(
     'SO ID: ${order.supplier}',
     style: const TextStyle(
       fontSize: 12,

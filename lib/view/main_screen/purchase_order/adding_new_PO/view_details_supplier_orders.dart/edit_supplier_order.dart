@@ -94,8 +94,8 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     _orderDateController = TextEditingController(
         text: "${_editedOrder.orderDate.day}/${_editedOrder.orderDate.month}/${_editedOrder.orderDate.year}");
     _selectedStatus = _editedOrder.status;
-    _selectedSupplierId = _editedOrder.supplier;
-    _selectedSupplierName = _editedOrder.supplierName;
+    _selectedSupplierId = _editedOrder.supplier!;
+    _selectedSupplierName = _editedOrder.supplierName!;
 
     // Initialize product controllers with proper number formatting and UOM preservation
     _productControllers = _editedOrder.products.map((product) {

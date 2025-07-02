@@ -142,6 +142,16 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   List<File> _selectedImages = [];
   List<String> _selectedImagePaths = [];
   final ImagePicker _imagePicker = ImagePicker();
+  void _performCalculations() {
+    if (_showSimpleForm) {
+      // Simple form: Total = Quantity × Rate
+      _calculateSimpleTotal();
+    } else if (_showItemForm) {
+      // Detailed form: Net Qty = Qty × PCS, Total = Net Qty × Rate
+      _calculateNetQty();
+      _calculateTotal();
+    }
+  }
 
   // Calculate net quantity (qty * pcs)
   void _calculateNetQty() {
@@ -154,22 +164,27 @@ class _DialogBoxItemsState extends State<DialogBoxItems> {
   }
 
   // Calculate total amount for simple form (qty * rate)
-  void _calculateSimpleTotal() {
+ void _calculateSimpleTotal() {
+    if (!_showSimpleForm) return; // Only calculate for simple form
+    
     final qty = double.tryParse(widget.quantityController.text) ?? 0.0;
     final rate = double.tryParse(widget.rateController.text) ?? 0.0;
     
     final total = qty * rate;
-    totalAmountController.text = total.toStringAsFixed(2);
+    totalAmountController.text = total == 0 ? '' : total.toStringAsFixed(2);
   }
 
   // Calculate total amount (net_qty * rate)
   void _calculateTotal() {
+    if (!_showItemForm) return; // Only calculate for detailed form
+    
     final netQty = double.tryParse(netQtyController.text) ?? 0.0;
     final rate = double.tryParse(widget.rateController.text) ?? 0.0;
     
     final total = netQty * rate;
-    totalAmountController.text = total.toStringAsFixed(2);
+    totalAmountController.text = total == 0 ? '' : total.toStringAsFixed(2);
   }
+
 
   @override
   void initState() {

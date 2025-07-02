@@ -25,41 +25,48 @@ class GetSupplierOrderModal {
 }
 
 class Message {
-    List<Order> orders;
-    int page;
-    int pageSize;
-    int totalOrders;
-    int totalPages;
+  List<Order> orders;
+  int page;
+  int pageSize;
+  int totalOrders;
+  int totalPages;
 
-    Message({
-        required this.orders,
-        required this.page,
-        required this.pageSize,
-        required this.totalOrders,
-        required this.totalPages,
-    });
+  Message({
+    required this.orders,
+    required this.page,
+    required this.pageSize,
+    required this.totalOrders,
+    required this.totalPages,
+  });
 
-    factory Message.fromJson(Map<String, dynamic> json) => Message(
-        orders: List<Order>.from(json["orders"].map((x) => Order.fromJson(x))),
-        page: json["page"],
-        pageSize: json["page_size"],
-        totalOrders: json["total_orders"],
-        totalPages: json["total_pages"],
+  factory Message.fromJson(Map<String, dynamic> json) {
+    final pagination = json["pagination"] ?? {};
+
+    return Message(
+      orders: List<Order>.from(json["orders"].map((x) => Order.fromJson(x))),
+      page: pagination["page"] ?? 0,
+      pageSize: pagination["page_size"] ?? 0,
+      totalOrders: pagination["total_orders"] ?? 0,
+      totalPages: pagination["total_pages"] ?? 0,
     );
+  }
 
-    Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => {
         "orders": List<dynamic>.from(orders.map((x) => x.toJson())),
-        "page": page,
-        "page_size": pageSize,
-        "total_orders": totalOrders,
-        "total_pages": totalPages,
-    };
+        "pagination": {
+          "page": page,
+          "page_size": pageSize,
+          "total_orders": totalOrders,
+          "total_pages": totalPages,
+        },
+      };
 }
+
 
 class Order {
   String orderId;
-  String supplier;
-  String supplierName;
+  String? supplier;
+  String? supplierName;
   DateTime orderDate;
   double grandTotal;
   String status;
@@ -67,8 +74,8 @@ class Order {
 
   Order({
     required this.orderId,
-    required this.supplier,
-    required this.supplierName,
+     this.supplier,
+     this.supplierName,
     required this.orderDate,
     required this.grandTotal,
     required this.status,
