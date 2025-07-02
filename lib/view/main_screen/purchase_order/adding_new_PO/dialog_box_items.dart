@@ -1055,7 +1055,7 @@ void _addCurrentItem() {
                             if (double.parse(value) <= 0) return 'Must be > 0';
                             return null;
                           },
-                          decoration: _getInputDecoration('0'),
+                          decoration: _getInputDecoration('1'),
                         ),
                       ),
                     ),
@@ -1072,7 +1072,7 @@ void _addCurrentItem() {
                             if (double.parse(value) <= 0) return 'Must be > 0';
                             return null;
                           },
-                          decoration: _getInputDecoration('0'),
+                          decoration: _getInputDecoration('1'),
                         ),
                       ),
                     ),
@@ -1085,7 +1085,7 @@ void _addCurrentItem() {
                   child: TextFormField(
                     controller: netQtyController,
                     readOnly: true,
-                    decoration: _getInputDecoration('Calculated automatically').copyWith(
+                    decoration: _getInputDecoration('1').copyWith(
                       fillColor: Colors.grey[50],
                       filled: true,
                     ),
