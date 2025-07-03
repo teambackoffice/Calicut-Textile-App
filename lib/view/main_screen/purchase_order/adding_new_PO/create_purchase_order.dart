@@ -60,6 +60,8 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   String selectedSupplier = 'Select Suppliers';
   String _selectedUOM = '';
   int _selectedImageCount = 0;
+  final _typeController = TextEditingController();
+final _designController = TextEditingController();
    
   
   // Add this to store all images for the order
@@ -133,15 +135,17 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     });
   }
 
-  @override
-  void dispose() {
-    _itemCodeController.dispose();
-    _itemNameController.dispose();
-    _quantityController.dispose();
-    _rateController.dispose();
-    _colorController.dispose();
-    super.dispose();
-  }
+ @override
+void dispose() {
+  _itemCodeController.dispose();
+  _itemNameController.dispose();
+  _quantityController.dispose();
+  _rateController.dispose();
+  _colorController.dispose();
+  _typeController.dispose();     // ADD THIS
+  _designController.dispose();   // ADD THIS
+  super.dispose();
+}
 
   // Handle simplified new item creation
   Future<void> _handleNewItemCreation(Item item) async {
@@ -182,11 +186,13 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
   }
 
  void _handleItemCreated(Item item) {
+  // Extract image paths from the item
   List<String> itemImages = [];
   if (item.image1 != null) itemImages.add(item.image1!);
   if (item.image2 != null) itemImages.add(item.image2!);
   if (item.image3 != null) itemImages.add(item.image3!);
 
+  // Use the same fallback logic as in _addCurrentItem
   final finalUOM = item.selectedUOM.isNotEmpty ? item.selectedUOM : '';
 
   setState(() {
@@ -198,8 +204,8 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
       netQty: item.netQty,
       rate: item.rate ?? 0.0,
       color: item.color ?? '',
-      type: item.type,           // NEW FIELD
-      design: item.design,       // NEW FIELD
+      type: item.type,           // Make sure this is included
+      design: item.design,       // Make sure this is included
       uom: finalUOM,
       imageCount: itemImages.length,
       imagePaths: itemImages,
@@ -207,19 +213,40 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     ));
   });
   
-  // Rest of the method remains the same...
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(Icons.check_circle, color: Colors.white, size: 20),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${item.name} added to purchase order with ${itemImages.length} image(s)',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: Colors.green,
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+  );
 }
   void _clearForm() {
-    _itemCodeController.clear();
-    _itemNameController.clear();
-    _quantityController.clear();
-    _rateController.clear();
-    _colorController.clear();
-    _pcsController.clear();
-    _selectedUOM = '';
-    _selectedImageCount = 0;
-    _selectedImagePaths.clear();
-  }
+  _itemCodeController.clear();
+  _itemNameController.clear();
+  _quantityController.clear();
+  _rateController.clear();
+  _colorController.clear();
+  _pcsController.clear();
+  _typeController.clear();     // ADD THIS
+  _designController.clear();   // ADD THIS
+  _selectedUOM = '';
+  _selectedImageCount = 0;
+  _selectedImagePaths.clear();
+}
 
   void _removeItem(int index) {
     setState(() {
@@ -286,6 +313,8 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
                               colorController: _colorController,
                               UomOptions: _uomOptions,
                               onUOMSelected: _updateSelectedUOM,
+                               typeController: _typeController,     // ADD THIS
+                              designController: _designController,
                               onImageCountChanged: _updateImageCount,
                               onItemCreated: _handleItemCreated,
                               onImagesSelected: _handleImagesSelected,
@@ -381,6 +410,10 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
         final pcs = double.tryParse(_pcsController.text) ?? 1;
         final calculatedNetQty = qty * pcs;
 
+        // You need to get the type and design values from the dialog
+        // Add these controllers to your class if they don't exist
+        // You need to pass this from the dialog
+
         setState(() {
           items.add(PurchaseOrderItem(
             itemCode: _itemCodeController.text,
@@ -390,9 +423,11 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
             netQty: calculatedNetQty,
             rate: double.parse(_rateController.text),
             color: _colorController.text,
+            type: _typeController.text.isEmpty ? null : _typeController.text, // ADD THIS
+            design: _designController.text.isEmpty ? null : _designController.text, // ADD THIS
             uom: _selectedUOM,
             imageCount: _selectedImagePaths.length,
-            imagePaths: List.from(_selectedImagePaths), // NEW: Copy the selected images
+            imagePaths: List.from(_selectedImagePaths),
             amount: calculatedNetQty * double.parse(_rateController.text),
           ));
         });
@@ -811,78 +846,90 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
                               const SizedBox(height: 8),
                               
                               // Third row: Color, UOM, Images (metadata)
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Color (only if not empty)
-                                  if (item.color.isNotEmpty) ...[
-                                    Icon(Icons.color_lens, size: 16, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      item.color,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                  ],
-                                  // In the item cards section, after the color display, add:
+                            Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    // First row: Color, Type, Design
+    Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Color (only if not empty)
+        if (item.color.isNotEmpty) ...[
+          Icon(Icons.color_lens, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 4),
+          Text(
+            item.color,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(width: 20),
+        ],
+        
+        // Type (only if not empty)
+        if (item.type != null && item.type!.isNotEmpty) ...[
+          Icon(Icons.category, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 4),
+          Text(
+            "Type: ${item.type}",
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(width: 20),
+        ],
 
-// Type (only if not empty)
-if (item.type != null && item.type!.isNotEmpty) ...[
-  const SizedBox(width: 20),
-  Icon(Icons.category, size: 16, color: Colors.grey.shade600),
-  const SizedBox(width: 4),
-  Text(
-    "Type: ${item.type}",
-    style: TextStyle(
-      fontSize: 14,
-      color: Colors.grey.shade600,
+        // Design (only if not empty)  
+        if (item.design != null && item.design!.isNotEmpty) ...[
+          Icon(Icons.brush, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 4),
+          Text(
+            "Design: ${item.design}",
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ],
     ),
-  ),
-],
-
-// Design (only if not empty)  
-if (item.design != null && item.design!.isNotEmpty) ...[
-  const SizedBox(width: 20),
-  Icon(Icons.brush, size: 16, color: Colors.grey.shade600),
-  const SizedBox(width: 4),
-  Text(
-    "Design: ${item.design}",
-    style: TextStyle(
-      fontSize: 14,
-      color: Colors.grey.shade600,
+    
+    const SizedBox(height: 8),
+    
+    // Second row: UOM, Images
+    Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // UOM (always show)
+        Icon(Icons.straighten, size: 16, color: Colors.grey.shade600),
+        const SizedBox(width: 4),
+        Text(
+          "UOM: ${item.uom}",
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        
+        // Images (only if > 0)
+        if (item.imageCount > 0) ...[
+          const SizedBox(width: 20),
+          Icon(Icons.photo_library, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 4),
+          Text(
+            "${item.imageCount} image${item.imageCount > 1 ? 's' : ''}",
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ],
     ),
-  ),
-],
-                                  
-                                  // UOM (always show)
-                                  Icon(Icons.straighten, size: 16, color: Colors.grey.shade600),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    "UOM: ${item.uom}",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                  
-                                  // Images (only if > 0)
-                                  if (item.imageCount > 0) ...[
-                                    const SizedBox(width: 20),
-                                    Icon(Icons.photo_library, size: 16, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      "${item.imageCount} image${item.imageCount > 1 ? 's' : ''}",
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
+  ],
+),
                             ],
                           ),
                         ),

@@ -151,11 +151,13 @@ class _SavePurchaseOrderButtonState extends State<SavePurchaseOrderButton> {
       // Create product list
       final productList = widget.items.map((item) {
         return Product(
-          product: item.itemName,
+          product: item!.itemName,
           qty: item.quantity.toInt(),
           uom: item.uom ?? "Nos",
           rate: item.rate.toDouble(),
           amount: item.amount.toDouble(),
+          type: item.type,
+          design: item.design,
           requiredDate: parsedRequiredDate,
           pcs: item.pcs?.toDouble(),
           netQty: item.netQty?.toDouble(),

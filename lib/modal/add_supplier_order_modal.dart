@@ -71,6 +71,8 @@ class Product {
     final double? pcs;
     final double? netQty;
     final String? uom;
+    final String? type;
+    final String? design; 
     final double rate; // Changed from int to double
     final double amount; // Changed from int to double
     final String? color;
@@ -82,6 +84,8 @@ class Product {
         this.pcs,
         this.netQty,
         this.uom,
+        this.design,
+        this.type,
         required this.rate,
         required this.amount,
         this.color,
@@ -97,6 +101,8 @@ class Product {
             'net_qty': netQty ?? 0.0,
             'uom': uom ?? "Nos",
             'rate': rate,
+            'type' : type,
+            'design' : design,
             'amount': amount,
             'color': color ?? '',
             'required_date': requiredDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
