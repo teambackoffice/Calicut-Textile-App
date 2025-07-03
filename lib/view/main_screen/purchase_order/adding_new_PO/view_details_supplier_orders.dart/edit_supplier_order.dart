@@ -1,3 +1,6 @@
+import 'package:calicut_textile_app/controller/get_all_types_controller.dart';
+import 'package:calicut_textile_app/controller/get_colours_controller.dart';
+import 'package:calicut_textile_app/controller/get_designs_controller.dart';
 import 'package:calicut_textile_app/controller/get_supplier_orders_controller.dart';
 import 'package:calicut_textile_app/controller/product_controller.dart';
 import 'package:calicut_textile_app/controller/supplier_list_controller.dart';
@@ -22,6 +25,39 @@ class EditSupplierOrderPage extends StatefulWidget {
 }
 
 class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
+
+  Future<void> _selectDate(TextEditingController controller) async {
+  DateTime? pickedDate = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now(),
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2100),
+  );
+
+  if (pickedDate != null) {
+    controller.text = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+  }
+}
+
+late ColorsController _colorsController;
+  late DesignsController _designsController;
+  late TextileTypesController _typesController;
+  
+  // Focus nodes for dropdowns
+  List<FocusNode> _colorFocusNodes = [];
+  List<FocusNode> _typeFocusNodes = [];
+  List<FocusNode> _designFocusNodes = [];
+  
+  // Dropdown visibility states
+  List<bool> _showColorDropdowns = [];
+  List<bool> _showTypeDropdowns = [];
+  List<bool> _showDesignDropdowns = [];
+  
+  // Search queries
+  List<String> _colorSearchQueries = [];
+  List<String> _typeSearchQueries = [];
+  List<String> _designSearchQueries = [];
+
   final _formKey = GlobalKey<FormState>();
   late OrderModel.Order _editedOrder;
   bool _isLoading = false;
@@ -39,12 +75,29 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
   List<Datum> _availableProducts = [];
   List<Supplier> _availableSuppliers = [];
 
+  
   @override
-  void initState() {
-    super.initState();
-    _initializeData();
-    _loadData();
-  }
+void initState() {
+  super.initState();
+  
+  // Initialize new controllers
+  _colorsController = ColorsController();
+  _designsController = DesignsController();
+  _typesController = TextileTypesController();
+  
+  _initializeData();
+  _loadData();
+  _loadDropdownData();
+}
+
+Future<void> _loadDropdownData() async {
+  // Load dropdown data
+  await Future.wait([
+    _colorsController.loadColors(),
+    _designsController.loadDesigns(),
+    _typesController.loadTextileTypes(),
+  ]);
+}
 
   // Helper function to format numbers without unnecessary decimals
   String _formatNumber(dynamic value) {
@@ -86,7 +139,7 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
         pcs: p.pcs,
         netQty: p.netQty,
         amount: p.amount,
-        requiredBy: p.requiredBy,
+        requiredBy: p.requiredBy, type: p.type, color: p.color, design: p.design,
       )).toList(),
     );
 
@@ -94,25 +147,39 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
     _orderDateController = TextEditingController(
         text: "${_editedOrder.orderDate.day}/${_editedOrder.orderDate.month}/${_editedOrder.orderDate.year}");
     _selectedStatus = _editedOrder.status;
-    _selectedSupplierId = _editedOrder.supplier!;
+    _selectedSupplierId = _editedOrder.supplier ?? '';
     _selectedSupplierName = _editedOrder.supplierName!;
 
     // Initialize product controllers with proper number formatting and UOM preservation
     _productControllers = _editedOrder.products.map((product) {
-      return ProductControllers(
-        productController: TextEditingController(text: product.product),
-        quantityController: TextEditingController(text: _formatNumber(product.quantity)),
-        rateController: TextEditingController(text: product.rate.toString()),
-        pcsController: TextEditingController(text: _formatNumber(product.pcs)),
-        netQtyController: TextEditingController(text: _formatNumber(product.netQty)),
-        amountController: TextEditingController(text: product.amount.toString()),
-        requiredByController: TextEditingController(
-            text: "${product.requiredBy.day}/${product.requiredBy.month}/${product.requiredBy.year}"),
-        // Preserve the original UOM from the fetched data
-        selectedUom: product.uom ?? OrderModel.Uom.NOS,
-        selectedProductName: product.product,
-      );
-    }).toList();
+    return ProductControllers(
+      productController: TextEditingController(text: product.product),
+      quantityController: TextEditingController(text: _formatNumber(product.quantity)),
+      rateController: TextEditingController(text: product.rate.toString()),
+      pcsController: TextEditingController(text: _formatNumber(product.pcs)),
+      netQtyController: TextEditingController(text: _formatNumber(product.netQty)),
+      amountController: TextEditingController(text: product.amount.toString()),
+      requiredByController: TextEditingController(
+          text: "${product.requiredBy.day}/${product.requiredBy.month}/${product.requiredBy.year}"),
+      
+      // New controllers - initialize with empty values or existing data if available
+      colorController: TextEditingController(text: product.color ?? ''),
+      typeController: TextEditingController(text: product.type ?? ''),
+      designController: TextEditingController(text: product.design ?? ''),
+      
+      selectedUom: product.uom ?? OrderModel.Uom.NOS,
+      selectedProductName: product.product,
+      
+      // Initialize selected values
+      selectedColor: product.color,
+      selectedType: product.type,
+      selectedDesign: product.design,
+    );
+  }).toList();
+
+  // Initialize focus nodes and states for existing products
+  _initializeFocusNodesAndStates();
+
 
     // Ensure calculations are correct on initialization
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -121,6 +188,59 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
       }
     });
   }
+  void _initializeFocusNodesAndStates() {
+  // Clear existing
+  for (var node in _colorFocusNodes) node.dispose();
+  for (var node in _typeFocusNodes) node.dispose();
+  for (var node in _designFocusNodes) node.dispose();
+  
+  _colorFocusNodes.clear();
+  _typeFocusNodes.clear();
+  _designFocusNodes.clear();
+  
+  // Initialize for current products
+  for (int i = 0; i < _productControllers.length; i++) {
+    _colorFocusNodes.add(FocusNode());
+    _typeFocusNodes.add(FocusNode());
+    _designFocusNodes.add(FocusNode());
+    
+    _showColorDropdowns.add(false);
+    _showTypeDropdowns.add(false);
+    _showDesignDropdowns.add(false);
+    
+    _colorSearchQueries.add('');
+    _typeSearchQueries.add('');
+    _designSearchQueries.add('');
+    
+    // Add listeners
+    _colorFocusNodes[i].addListener(() => _onColorFocusChange(i));
+    _typeFocusNodes[i].addListener(() => _onTypeFocusChange(i));
+    _designFocusNodes[i].addListener(() => _onDesignFocusChange(i));
+  }
+}
+void _onColorFocusChange(int index) {
+  if (index < _showColorDropdowns.length) {
+    setState(() {
+      _showColorDropdowns[index] = _colorFocusNodes[index].hasFocus;
+    });
+  }
+}
+
+void _onTypeFocusChange(int index) {
+  if (index < _showTypeDropdowns.length) {
+    setState(() {
+      _showTypeDropdowns[index] = _typeFocusNodes[index].hasFocus;
+    });
+  }
+}
+
+void _onDesignFocusChange(int index) {
+  if (index < _showDesignDropdowns.length) {
+    setState(() {
+      _showDesignDropdowns[index] = _designFocusNodes[index].hasFocus;
+    });
+  }
+}
 
   Future<void> _loadData() async {
     // Load products and suppliers
@@ -206,44 +326,44 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
   }
 
   void _addNewProduct() {
-    setState(() {
-      _productControllers.add(ProductControllers(
-        productController: TextEditingController(),
-        quantityController: TextEditingController(text: '0'),
-        rateController: TextEditingController(text: '0'),
-        pcsController: TextEditingController(text: '0'),
-        netQtyController: TextEditingController(text: '0'),
-        amountController: TextEditingController(text: '0'),
-        requiredByController: TextEditingController(),
-        selectedUom: OrderModel.Uom.NOS,
-        selectedProductName: '',
-      ));
-    });
-  }
-
-  void _removeProduct(int index) {
-    if (_productControllers.length > 1) {
-      setState(() {
-        _productControllers[index].dispose();
-        _productControllers.removeAt(index);
-        _calculateGrandTotal();
-      });
-    }
-  }
-
-  Future<void> _selectDate(TextEditingController controller) async {
-  final DateTime today = DateTime.now();
-
-  final DateTime? picked = await showDatePicker(
-    context: context,
-    initialDate: today,
-    firstDate: DateTime(today.year, today.month, today.day), // Prevent past dates
-    lastDate: DateTime(2030),
-  );
-
-  if (picked != null) {
-    controller.text = "${picked.day}/${picked.month}/${picked.year}";
-  }
+  setState(() {
+    _productControllers.add(ProductControllers(
+      productController: TextEditingController(),
+      quantityController: TextEditingController(text: '1'),
+      rateController: TextEditingController(text: '0'),
+      pcsController: TextEditingController(text: '1'),
+      netQtyController: TextEditingController(text: '1'),
+      amountController: TextEditingController(text: '0'),
+      requiredByController: TextEditingController(),
+      colorController: TextEditingController(),      // NEW
+      typeController: TextEditingController(),       // NEW
+      designController: TextEditingController(),     // NEW
+      selectedUom: OrderModel.Uom.NOS,
+      selectedProductName: '',
+      selectedColor: null,                           // NEW
+      selectedType: null,                            // NEW
+      selectedDesign: null,                          // NEW
+    ));
+    
+    // Add new focus nodes and states
+    _colorFocusNodes.add(FocusNode());
+    _typeFocusNodes.add(FocusNode());
+    _designFocusNodes.add(FocusNode());
+    
+    _showColorDropdowns.add(false);
+    _showTypeDropdowns.add(false);
+    _showDesignDropdowns.add(false);
+    
+    _colorSearchQueries.add('');
+    _typeSearchQueries.add('');
+    _designSearchQueries.add('');
+    
+    // Add listeners for new nodes
+    int newIndex = _productControllers.length - 1;
+    _colorFocusNodes[newIndex].addListener(() => _onColorFocusChange(newIndex));
+    _typeFocusNodes[newIndex].addListener(() => _onTypeFocusChange(newIndex));
+    _designFocusNodes[newIndex].addListener(() => _onDesignFocusChange(newIndex));
+  });
 }
 
 
@@ -315,6 +435,33 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
       ),
     );
   }
+  void _removeProduct(int index) {
+  if (_productControllers.length > 1) {
+    setState(() {
+      _productControllers[index].dispose();
+      _productControllers.removeAt(index);
+      
+      // Remove focus nodes and states
+      _colorFocusNodes[index].dispose();
+      _typeFocusNodes[index].dispose();
+      _designFocusNodes[index].dispose();
+      
+      _colorFocusNodes.removeAt(index);
+      _typeFocusNodes.removeAt(index);
+      _designFocusNodes.removeAt(index);
+      
+      _showColorDropdowns.removeAt(index);
+      _showTypeDropdowns.removeAt(index);
+      _showDesignDropdowns.removeAt(index);
+      
+      _colorSearchQueries.removeAt(index);
+      _typeSearchQueries.removeAt(index);
+      _designSearchQueries.removeAt(index);
+      
+      _calculateGrandTotal();
+    });
+  }
+}
 
   Future<void> _saveOrder() async {
     // Validate all fields before proceeding
@@ -359,7 +506,8 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
           pcs: double.tryParse(controller.pcsController.text),
           netQty: double.tryParse(controller.netQtyController.text) ?? 0,
           amount: double.tryParse(controller.amountController.text) ?? 0,
-          requiredBy: requiredDate,
+          requiredBy: requiredDate, type: controller.selectedType, color: controller.selectedColor,
+           design: controller.selectedDesign,
         );
       }).toList();
 
@@ -669,6 +817,15 @@ class _EditSupplierOrderPageState extends State<EditSupplierOrderPage> {
             label: 'Required By',
             icon: Icons.event,
           ),
+           SizedBox(height: 12),
+
+          _buildSearchableColorField(index),
+        const SizedBox(height: 12),
+        
+        _buildSearchableTypeField(index),
+        const SizedBox(height: 12),
+        
+        _buildSearchableDesignField(index),
         ],
       ),
     );
@@ -1359,6 +1516,539 @@ Future<void> _showSupplierSearchDialog() async {
         return '';
     }
   }
+  // Add these searchable dropdown methods to _EditSupplierOrderPageState
+
+// Filter methods
+List<String> _getFilteredColors(int index) {
+  if (index >= _colorSearchQueries.length) return [];
+  final query = _colorSearchQueries[index];
+  if (query.isEmpty) return _colorsController.colors;
+  return _colorsController.colors
+      .where((color) => color.toLowerCase().contains(query.toLowerCase()))
+      .toList();
+}
+
+List<String> _getFilteredTypes(int index) {
+  if (index >= _typeSearchQueries.length) return [];
+  final query = _typeSearchQueries[index];
+  if (query.isEmpty) return _typesController.textileTypes;
+  return _typesController.textileTypes
+      .where((type) => type.toLowerCase().contains(query.toLowerCase()))
+      .toList();
+}
+
+List<String> _getFilteredDesigns(int index) {
+  if (index >= _designSearchQueries.length) return [];
+  final query = _designSearchQueries[index];
+  if (query.isEmpty) return _designsController.designs;
+  return _designsController.designs
+      .where((design) => design.toLowerCase().contains(query.toLowerCase()))
+      .toList();
+}
+
+// Color helper
+
+
+// Searchable Color Field Widget
+Widget _buildSearchableColorField(int index) {
+  if (index >= _productControllers.length) return SizedBox.shrink();
+  
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      TextFormField(
+        controller: _productControllers[index].colorController,
+        focusNode: index < _colorFocusNodes.length ? _colorFocusNodes[index] : null,
+        decoration: InputDecoration(
+          labelText: 'Color (Optional)',
+          prefixIcon: Icon(Icons.color_lens, color: Color(0xFF3B82F6)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_productControllers[index].colorController.text.isNotEmpty)
+                IconButton(
+                  icon: Icon(Icons.clear, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      _productControllers[index].colorController.clear();
+                      _productControllers[index].selectedColor = null;
+                      if (index < _colorSearchQueries.length) {
+                        _colorSearchQueries[index] = '';
+                      }
+                    });
+                  },
+                ),
+              Icon(Icons.arrow_drop_down),
+              SizedBox(width: 8),
+            ],
+          ),
+        ),
+        onChanged: (value) {
+          setState(() {
+            if (index < _colorSearchQueries.length) {
+              _colorSearchQueries[index] = value;
+            }
+            _productControllers[index].selectedColor = value.isEmpty ? null : value;
+          });
+        },
+        onTap: () {
+          setState(() {
+            if (index < _showColorDropdowns.length) {
+              _showColorDropdowns[index] = true;
+            }
+          });
+        },
+      ),
+      
+      // Dropdown List
+      if (index < _showColorDropdowns.length && _showColorDropdowns[index]) ...[
+        SizedBox(height: 4),
+        AnimatedBuilder(
+          animation: _colorsController,
+          builder: (context, child) {
+            if (_colorsController.isLoading) {
+              return _buildLoadingContainer('Loading colors...');
+            }
+            
+            if (_colorsController.hasError) {
+              return _buildErrorContainer('Error loading colors');
+            }
+            
+            final filteredColors = _getFilteredColors(index);
+            
+            if (filteredColors.isEmpty) {
+              return _buildEmptyContainer('No colors found');
+            }
+            
+            return Container(
+              constraints: BoxConstraints(maxHeight: 200),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: filteredColors.length,
+                itemBuilder: (context, listIndex) {
+                  final color = filteredColors[listIndex];
+                  final isSelected = _productControllers[index].selectedColor == color;
+                  
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        _productControllers[index].selectedColor = color;
+                        _productControllers[index].colorController.text = color;
+                        if (index < _colorSearchQueries.length) {
+                          _colorSearchQueries[index] = color;
+                        }
+                        if (index < _showColorDropdowns.length) {
+                          _showColorDropdowns[index] = false;
+                        }
+                      });
+                      if (index < _colorFocusNodes.length) {
+                        _colorFocusNodes[index].unfocus();
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.blue.shade50 : null,
+                        border: listIndex > 0 ? Border(top: BorderSide(color: Colors.grey[200]!)) : null,
+                      ),
+                      child: Row(
+                        children: [
+                          
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              color,
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                color: isSelected ? Colors.blue.shade700 : Colors.black87,
+                              ),
+                            ),
+                          ),
+                          if (isSelected)
+                            Icon(Icons.check, color: Colors.blue.shade700, size: 20),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    ],
+  );
+}
+
+// Searchable Type Field Widget  
+Widget _buildSearchableTypeField(int index) {
+  if (index >= _productControllers.length) return SizedBox.shrink();
+  
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      TextFormField(
+        controller: _productControllers[index].typeController,
+        focusNode: index < _typeFocusNodes.length ? _typeFocusNodes[index] : null,
+        decoration: InputDecoration(
+          labelText: 'Type (Optional)',
+          prefixIcon: Icon(Icons.category, color: Color(0xFF3B82F6)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_productControllers[index].typeController.text.isNotEmpty)
+                IconButton(
+                  icon: Icon(Icons.clear, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      _productControllers[index].typeController.clear();
+                      _productControllers[index].selectedType = null;
+                      if (index < _typeSearchQueries.length) {
+                        _typeSearchQueries[index] = '';
+                      }
+                    });
+                  },
+                ),
+              Icon(Icons.arrow_drop_down),
+              SizedBox(width: 8),
+            ],
+          ),
+        ),
+        onChanged: (value) {
+          setState(() {
+            if (index < _typeSearchQueries.length) {
+              _typeSearchQueries[index] = value;
+            }
+            _productControllers[index].selectedType = value.isEmpty ? null : value;
+          });
+        },
+        onTap: () {
+          setState(() {
+            if (index < _showTypeDropdowns.length) {
+              _showTypeDropdowns[index] = true;
+            }
+          });
+        },
+      ),
+      
+      // Dropdown List
+      if (index < _showTypeDropdowns.length && _showTypeDropdowns[index]) ...[
+        SizedBox(height: 4),
+        AnimatedBuilder(
+          animation: _typesController,
+          builder: (context, child) {
+            if (_typesController.isLoading) {
+              return _buildLoadingContainer('Loading types...');
+            }
+            
+            if (_typesController.hasError) {
+              return _buildErrorContainer('Error loading types');
+            }
+            
+            final filteredTypes = _getFilteredTypes(index);
+            
+            if (filteredTypes.isEmpty) {
+              return _buildEmptyContainer('No types found');
+            }
+            
+            return Container(
+              constraints: BoxConstraints(maxHeight: 200),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: filteredTypes.length,
+                itemBuilder: (context, listIndex) {
+                  final type = filteredTypes[listIndex];
+                  final isSelected = _productControllers[index].selectedType == type;
+                  
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        _productControllers[index].selectedType = type;
+                        _productControllers[index].typeController.text = type;
+                        if (index < _typeSearchQueries.length) {
+                          _typeSearchQueries[index] = type;
+                        }
+                        if (index < _showTypeDropdowns.length) {
+                          _showTypeDropdowns[index] = false;
+                        }
+                      });
+                      if (index < _typeFocusNodes.length) {
+                        _typeFocusNodes[index].unfocus();
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.blue.shade50 : null,
+                        border: listIndex > 0 ? Border(top: BorderSide(color: Colors.grey[200]!)) : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.category, size: 20, color: isSelected ? Colors.blue.shade700 : Colors.grey[600]),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              type,
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                color: isSelected ? Colors.blue.shade700 : Colors.black87,
+                              ),
+                            ),
+                          ),
+                          if (isSelected)
+                            Icon(Icons.check, color: Colors.blue.shade700, size: 20),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    ],
+  );
+}
+
+// Searchable Design Field Widget
+Widget _buildSearchableDesignField(int index) {
+  if (index >= _productControllers.length) return SizedBox.shrink();
+  
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      TextFormField(
+        controller: _productControllers[index].designController,
+        focusNode: index < _designFocusNodes.length ? _designFocusNodes[index] : null,
+        decoration: InputDecoration(
+          labelText: 'Design (Optional)',
+          prefixIcon: Icon(Icons.brush, color: Color(0xFF3B82F6)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_productControllers[index].designController.text.isNotEmpty)
+                IconButton(
+                  icon: Icon(Icons.clear, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      _productControllers[index].designController.clear();
+                      _productControllers[index].selectedDesign = null;
+                      if (index < _designSearchQueries.length) {
+                        _designSearchQueries[index] = '';
+                      }
+                    });
+                  },
+                ),
+              Icon(Icons.arrow_drop_down),
+              SizedBox(width: 8),
+            ],
+          ),
+        ),
+        onChanged: (value) {
+          setState(() {
+            if (index < _designSearchQueries.length) {
+              _designSearchQueries[index] = value;
+            }
+            _productControllers[index].selectedDesign = value.isEmpty ? null : value;
+          });
+        },
+        onTap: () {
+          setState(() {
+            if (index < _showDesignDropdowns.length) {
+              _showDesignDropdowns[index] = true;
+            }
+          });
+        },
+      ),
+      
+      // Dropdown List
+      if (index < _showDesignDropdowns.length && _showDesignDropdowns[index]) ...[
+        SizedBox(height: 4),
+        AnimatedBuilder(
+          animation: _designsController,
+          builder: (context, child) {
+            if (_designsController.isLoading) {
+              return _buildLoadingContainer('Loading designs...');
+            }
+            
+            if (_designsController.hasError) {
+              return _buildErrorContainer('Error loading designs');
+            }
+            
+            final filteredDesigns = _getFilteredDesigns(index);
+            
+            if (filteredDesigns.isEmpty) {
+              return _buildEmptyContainer('No designs found');
+            }
+            
+            return Container(
+              constraints: BoxConstraints(maxHeight: 200),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: filteredDesigns.length,
+                itemBuilder: (context, listIndex) {
+                  final design = filteredDesigns[listIndex];
+                  final isSelected = _productControllers[index].selectedDesign == design;
+                  
+                  // Get design item for icon
+                 
+                  
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        _productControllers[index].selectedDesign = design;
+                        _productControllers[index].designController.text = design;
+                        if (index < _designSearchQueries.length) {
+                          _designSearchQueries[index] = design;
+                        }
+                        if (index < _showDesignDropdowns.length) {
+                          _showDesignDropdowns[index] = false;
+                        }
+                      });
+                      if (index < _designFocusNodes.length) {
+                        _designFocusNodes[index].unfocus();
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.blue.shade50 : null,
+                        border: listIndex > 0 ? Border(top: BorderSide(color: Colors.grey[200]!)) : null,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  design,
+                                  style: TextStyle(
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                    color: isSelected ? Colors.blue.shade700 : Colors.black87,
+                                  ),
+                                ),
+                              
+                              ],
+                            ),
+                          ),
+                          if (isSelected)
+                            Icon(Icons.check, color: Colors.blue.shade700, size: 20),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    ],
+  );
+}
+
+// Helper widgets for loading, error, and empty states
+Widget _buildLoadingContainer(String message) {
+  return Container(
+    height: 80,
+    decoration: BoxDecoration(
+      border: Border.all(color: Colors.grey[300]!),
+      borderRadius: BorderRadius.circular(8),
+      color: Colors.grey[50],
+    ),
+    child: Center(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 12),
+          Text(message, style: TextStyle(color: Colors.grey[600])),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildErrorContainer(String message) {
+  return Container(
+    height: 80,
+    decoration: BoxDecoration(
+      border: Border.all(color: Colors.red[300]!),
+      borderRadius: BorderRadius.circular(8),
+      color: Colors.red[50],
+    ),
+    child: Center(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error, color: Colors.red[600], size: 16),
+          SizedBox(width: 8),
+          Text(message, style: TextStyle(color: Colors.red[600])),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildEmptyContainer(String message) {
+  return Container(
+    height: 80,
+    decoration: BoxDecoration(
+      border: Border.all(color: Colors.grey[300]!),
+      borderRadius: BorderRadius.circular(8),
+      color: Colors.grey[50],
+    ),
+    child: Center(
+      child: Text(message, style: TextStyle(color: Colors.grey[600])),
+    ),
+  );
+}
 
   // OrderModel.Uom _convertStringToUom(String uomString) {
   //   switch (uomString.toLowerCase()) {
@@ -1390,8 +2080,19 @@ class ProductControllers {
   final TextEditingController netQtyController;
   final TextEditingController amountController;
   final TextEditingController requiredByController;
+  
+  // New controllers for color, type, design
+  final TextEditingController colorController;
+  final TextEditingController typeController;
+  final TextEditingController designController;
+  
   OrderModel.Uom selectedUom;
   String selectedProductName;
+  
+  // New fields for selected values
+  String? selectedColor;
+  String? selectedType;
+  String? selectedDesign;
 
   ProductControllers({
     required this.productController,
@@ -1401,8 +2102,14 @@ class ProductControllers {
     required this.netQtyController,
     required this.amountController,
     required this.requiredByController,
+    required this.colorController,      // NEW
+    required this.typeController,       // NEW
+    required this.designController,     // NEW
     required this.selectedUom,
     required this.selectedProductName,
+    this.selectedColor,                 // NEW
+    this.selectedType,                  // NEW
+    this.selectedDesign,                // NEW
   });
 
   void dispose() {
@@ -1413,5 +2120,18 @@ class ProductControllers {
     netQtyController.dispose();
     amountController.dispose();
     requiredByController.dispose();
+    colorController.dispose();          // NEW
+    typeController.dispose();           // NEW
+    designController.dispose();  
+  //   colorsController.dispose();
+  //   designsController.dispose();
+  //   typesController.dispose();
+  
+  // // Dispose focus nodes
+  // for (var node in _colorFocusNodes) node.dispose();
+  // for (var node in _typeFocusNodes) node.dispose();
+  // for (var node in _designFocusNodes) node.dispose();
+  
+  // super.dispose();       // NEW
   }
 }

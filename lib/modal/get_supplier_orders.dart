@@ -87,6 +87,7 @@ class Order {
         supplier: json["supplier_id"],
         supplierName: json["supplier_name"],
         orderDate: DateTime.parse(json["order_date"]),
+
         grandTotal: json["grand_total"],
         status: json["status"],
         products: List<Product>.from(
@@ -111,6 +112,9 @@ class Product {
     Uom? uom;
     double rate;
     double? pcs;
+    String? color;
+    String? type;
+    String? design;
     double? netQty;
     double amount;
     DateTime requiredBy;
@@ -120,6 +124,10 @@ class Product {
         required this.quantity,
         required this.uom,
         required this.rate,
+        required this.type,
+        required this.color,
+        required this.design,
+
         required this.pcs,
         required this.netQty,
         required this.amount,
@@ -134,7 +142,8 @@ class Product {
         pcs: json["pcs"],
         netQty: json["net_qty"],
         amount: json["amount"],
-        requiredBy: DateTime.parse(json["required_by"]),
+        requiredBy: DateTime.parse(json["required_by"]), 
+        type: json["type"], color: json["color"], design: json["design"],
     );
 
     Map<String, dynamic> toJson() => {
@@ -143,6 +152,9 @@ class Product {
         "uom": uomValues.reverse[uom],
         "rate": rate,
         "pcs": pcs,
+        "type": type,
+        "design" : design,
+        "color": color,
         "net_qty": netQty,
         "amount": amount,
         "required_by": "${requiredBy.year.toString().padLeft(4, '0')}-${requiredBy.month.toString().padLeft(2, '0')}-${requiredBy.day.toString().padLeft(2, '0')}",

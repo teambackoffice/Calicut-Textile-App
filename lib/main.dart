@@ -1,4 +1,7 @@
 import 'package:calicut_textile_app/controller/add_supplier_order_controller.dart';
+import 'package:calicut_textile_app/controller/get_all_types_controller.dart';
+import 'package:calicut_textile_app/controller/get_colours_controller.dart';
+import 'package:calicut_textile_app/controller/get_designs_controller.dart';
 import 'package:calicut_textile_app/controller/get_supplier_orders_controller.dart';
 import 'package:calicut_textile_app/controller/login_controller.dart';
 import 'package:calicut_textile_app/controller/product_controller.dart';
@@ -20,6 +23,9 @@ void main() {
         ChangeNotifierProvider(create: (_) => CreateSupplierOrderController()),
         ChangeNotifierProvider(create: (_) => SupplierOrderController()),
         ChangeNotifierProvider(create: (_) => SupplierProvider()),
+        ChangeNotifierProvider(create: (_) => ColorsController()),
+        ChangeNotifierProvider(create: (_) => DesignsController()),
+        ChangeNotifierProvider(create: (_) => TextileTypesController()),
       ],
       child: MyApp(),
     ),
