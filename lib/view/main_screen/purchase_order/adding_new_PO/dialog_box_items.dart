@@ -155,7 +155,7 @@ String? _selectedType;
 String? _selectedDesign;
 
 
-  String? _selectedUOM;
+   String? _selectedUOM = 'NOS';
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController netQtyController = TextEditingController();
   final TextEditingController totalAmountController = TextEditingController();
@@ -186,9 +186,9 @@ String? _selectedDesign;
   }
 
   // Calculate net quantity (qty * pcs)
-  void _calculateNetQty() {
-    final qty = double.tryParse(widget.quantityController.text) ?? 0.0;
-    final pcs = double.tryParse(widget.pcsController.text) ?? 0.0;
+   void _calculateNetQty() {
+    final qty = double.tryParse(widget.quantityController.text) ?? 1.0;
+    final pcs = double.tryParse(widget.pcsController.text) ?? 1.0;
     
     final result = qty * pcs;
     netQtyController.text = result.toStringAsFixed(2);
@@ -221,7 +221,7 @@ String? _selectedDesign;
   @override
 void initState() {
   super.initState();
-  _selectedUOM = null;
+  _selectedUOM = 'NOS'; 
 
   _colorFocusNode.addListener(_onColorFocusChange);
   _typeFocusNode.addListener(_onTypeFocusChange);
@@ -236,6 +236,8 @@ void initState() {
   _colorsController.loadColors();
   _designsController.loadDesigns();
   _typesController.loadTextileTypes();
+   widget.quantityController.text = '1';
+    widget.pcsController.text = '1';
   
   // Add existing listeners
   widget.quantityController.addListener(_calculateNetQty);
@@ -345,78 +347,88 @@ List<String> _getFilteredDesigns() {
   }
 
   void _selectItemFromSearch(Item item) {
-  setState(() {
-    _selectedItem = item;
-    _showItemForm = true;
-    _isCreatingNew = false;
-    _showSimpleForm = false;
+    setState(() {
+      _selectedItem = item;
+      _showItemForm = true;
+      _isCreatingNew = false;
+      _showSimpleForm = false;
+      
+      // Set basic item details
+      widget.itemCodeController.text = item.code;
+      widget.itemNameController.text = item.name;
+      
+      // Set UOM based on item or default to NOS
+      if (item.selectedUOM.isNotEmpty && ['NOS', 'METER'].contains(item.selectedUOM)) {
+        _selectedUOM = item.selectedUOM;
+      } else {
+        _selectedUOM = 'NOS'; // Default to NOS
+      }
+      
+      // Set default values
+      widget.quantityController.text = '1';
+      widget.pcsController.text = '1';
+      widget.rateController.clear();
+      
+      // Clear new dropdown fields
+      _selectedColor = null;
+      _selectedType = null;
+      _selectedDesign = null;
+      _typeController.clear();
+      _designController.clear();
+      _showColorDropdown = false;
+      _showTypeDropdown = false;
+      _showDesignDropdown = false;
+      _colorSearchQuery = '';
+      _typeSearchQuery = '';
+      _designSearchQuery = '';
+      
+      // Set initial net quantity
+      netQtyController.text = '1.00';
+      totalAmountController.clear();
+      
+      // Clear images
+      _selectedImages.clear();
+      _selectedImagePaths.clear();
+      _updateImageCount();
+    });
     
-    // Set basic item details
-    widget.itemCodeController.text = item.code;
-    widget.itemNameController.text = item.name;
-    
-    // Validate UOM exists in options before setting
-    if (item.selectedUOM.isNotEmpty && widget.UomOptions.contains(item.selectedUOM)) {
-      _selectedUOM = item.selectedUOM;
-    } else {
-      _selectedUOM = null;
+    // Notify parent about the UOM
+    if (widget.onUOMSelected != null) {
+      widget.onUOMSelected!(_selectedUOM!);
     }
     
-    // Clear form fields for user input
-    widget.quantityController.clear();
-    widget.pcsController.clear();
-    widget.rateController.clear();
-    widget.colorController.clear();
-    netQtyController.clear();
-    totalAmountController.clear();
-    
-    // Clear new dropdown fields
-    _selectedColor = null;
-    _selectedType = null;
-    _selectedDesign = null;
-    _typeController.clear();
-    _designController.clear();
-    _showColorDropdown = false;
-    _showTypeDropdown = false;
-    _showDesignDropdown = false;
-    _colorSearchQuery = '';
-    _typeSearchQuery = '';
-    _designSearchQuery = '';
-    
-    // Clear images
-    _selectedImages.clear();
-    _selectedImagePaths.clear();
-    _updateImageCount();
-  });
-  
-  // Always notify parent about the UOM
-  final finalUOM = _selectedUOM ?? item.selectedUOM;
-  if (widget.onUOMSelected != null && finalUOM.isNotEmpty) {
-    widget.onUOMSelected!(finalUOM);
+    if (widget.onCreationModeChanged != null) {
+      widget.onCreationModeChanged!(false);
+    }
   }
-  
-  if (widget.onCreationModeChanged != null) {
-    widget.onCreationModeChanged!(false);
-  }
-}
   // Show simple creation form
-  void _createNewItem() {
+   void _createNewItem() {
     setState(() {
       _isCreatingNew = true;
       _showItemForm = false;
       _showSimpleForm = true;
       _selectedItem = null;
-      _selectedUOM = null;
+      _selectedUOM = 'NOS'; // Default to NOS
       
-      // Clear all form fields
+      // Clear all form fields and set defaults
       widget.itemCodeController.clear();
       widget.itemNameController.clear();
       widget.colorController.clear();
-      widget.quantityController.clear();
-      widget.pcsController.clear();
+      widget.quantityController.text = '1'; // Default to 1
+      widget.pcsController.text = '1';      // Default to 1
       widget.rateController.clear();
-      netQtyController.clear();
+      netQtyController.text = '1.00';       // Default net qty
       totalAmountController.clear();
+      
+      // Clear dropdown selections
+      _selectedColor = null;
+      _selectedType = null;
+      _selectedDesign = null;
+      _typeController.clear();
+      _designController.clear();
+      _showColorDropdown = false;
+      _showTypeDropdown = false;
+      _showDesignDropdown = false;
       
       // Clear images
       _selectedImages.clear();
@@ -428,40 +440,43 @@ List<String> _getFilteredDesigns() {
       widget.onCreationModeChanged!(true);
     }
   }
-
   // Reset to search view
   void _resetToSearch() {
-  setState(() {
-    _selectedItem = null;
-    _isCreatingNew = false;
-    _showItemForm = false;
-    _showSimpleForm = false;
-    _isCreatingItem = false;
-    _searchController.clear();
-    _filteredItems = _allItems;
-    _selectedImages.clear();
-    _selectedImagePaths.clear();
+    setState(() {
+      _selectedItem = null;
+      _isCreatingNew = false;
+      _showItemForm = false;
+      _showSimpleForm = false;
+      _isCreatingItem = false;
+      _searchController.clear();
+      _filteredItems = _allItems;
+      _selectedImages.clear();
+      _selectedImagePaths.clear();
+      
+      // Reset UOM to default
+      _selectedUOM = 'NOS';
+      
+      // Clear new dropdown states
+      _selectedColor = null;
+      _selectedType = null;
+      _selectedDesign = null;
+      _typeController.clear();
+      _designController.clear();
+      _showColorDropdown = false;
+      _showTypeDropdown = false;
+      _showDesignDropdown = false;
+      _colorSearchQuery = '';
+      _typeSearchQuery = '';
+      _designSearchQuery = '';
+      
+      _updateImageCount();
+    });
     
-    // Clear new dropdown states
-    _selectedColor = null;
-    _selectedType = null;
-    _selectedDesign = null;
-    _typeController.clear();
-    _designController.clear();
-    _showColorDropdown = false;
-    _showTypeDropdown = false;
-    _showDesignDropdown = false;
-    _colorSearchQuery = '';
-    _typeSearchQuery = '';
-    _designSearchQuery = '';
-    
-    _updateImageCount();
-  });
-  
-  if (widget.onCreationModeChanged != null) {
-    widget.onCreationModeChanged!(false);
+    if (widget.onCreationModeChanged != null) {
+      widget.onCreationModeChanged!(false);
+    }
   }
-}
+
 
   // Create new item with simplified data and redirect to search
   void _createSimpleItem() async {
@@ -998,29 +1013,11 @@ void _addCurrentItem() {
                 ),
 
                 // UOM
-                _buildFormField(
-                  label: 'Unit of Measurement *',
-                  child: DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: _selectedUOM,
-                    // hint: const Text('Select UOM'),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedUOM = value;
-                      });
-                      if (widget.onUOMSelected != null && value != null) {
-                        widget.onUOMSelected!(value);
-                      }
-                    },
-                    items: widget.UomOptions.map((uom) {
-                      return DropdownMenuItem<String>(
-                        value: uom,
-                        child: Text(uom),
-                      );
-                    }).toList(),
-                    decoration: _getInputDecoration('Select UOM'),
-                  ),
-                ),
+               // Replace the UOM DropdownButtonFormField with:
+_buildFormField(
+  label: 'Unit of Measurement *',
+  child: _buildUOMButtons(),
+),
 
                 // Quantity
                 // _buildFormField(
@@ -1146,38 +1143,38 @@ void _addCurrentItem() {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildFormField(
-                        label: 'Quantity *',
-                        child: TextFormField(
-                          controller: widget.quantityController,
-                          keyboardType: TextInputType.numberWithOptions(decimal: true),
-                          validator: (value) {
-                            if (value?.isEmpty == true) return 'Required';
-                            if (double.tryParse(value!) == null) return 'Invalid number';
-                            if (double.parse(value) <= 0) return 'Must be > 0';
-                            return null;
-                          },
-                          decoration: _getInputDecoration('1'),
-                        ),
-                      ),
-                    ),
+  child: _buildFormField(
+    label: 'Quantity *',
+    child: TextFormField(
+      controller: widget.quantityController,
+      keyboardType: TextInputType.numberWithOptions(decimal: true),
+      validator: (value) {
+        if (value?.isEmpty == true) return 'Required';
+        if (double.tryParse(value!) == null) return 'Invalid number';
+        if (double.parse(value) <= 0) return 'Must be > 0';
+        return null;
+      },
+      decoration: _getInputDecoration(''),
+    ),
+  ),
+),
                     const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildFormField(
-                        label: 'PCS *',
-                        child: TextFormField(
-                          controller: widget.pcsController,
-                          keyboardType: TextInputType.numberWithOptions(decimal: true),
-                          validator: (value) {
-                            if (value?.isEmpty == true) return 'Required';
-                            if (double.tryParse(value!) == null) return 'Invalid number';
-                            if (double.parse(value) <= 0) return 'Must be > 0';
-                            return null;
-                          },
-                          decoration: _getInputDecoration('1'),
-                        ),
-                      ),
-                    ),
+                  Expanded(
+  child: _buildFormField(
+    label: 'PCS *',
+    child: TextFormField(
+      controller: widget.pcsController,
+      keyboardType: TextInputType.numberWithOptions(decimal: true),
+      validator: (value) {
+        if (value?.isEmpty == true) return 'Required';
+        if (double.tryParse(value!) == null) return 'Invalid number';
+        if (double.parse(value) <= 0) return 'Must be > 0';
+        return null;
+      },
+      decoration: _getInputDecoration(''),
+    ),
+  ),
+),
                   ],
                 ),
 
@@ -1195,67 +1192,10 @@ void _addCurrentItem() {
                 ),
 
                 // UOM
-              _buildFormField(
+             // Replace the UOM DropdownButtonFormField with:
+_buildFormField(
   label: 'Unit of Measurement *',
-  child: DropdownButtonFormField<String>(
-    isExpanded: true,
-    value: _selectedUOM,
-    hint: Text(_selectedItem?.selectedUOM ?? 'Select UOM'),
-    validator: (value) {
-      // If user hasn't selected anything, check if item has UOM
-      if (value == null) {
-        if (_selectedItem?.selectedUOM != null && _selectedItem!.selectedUOM.isNotEmpty) {
-          return null; // Valid - will use item's UOM
-        } else {
-          return 'Please select UOM'; // Invalid - no UOM available
-        }
-      }
-      return null; // Valid - user selected something
-    },
-    onChanged: (value) {
-  setState(() {
-    _selectedUOM = value;
-  });
-  
-      if (widget.onUOMSelected != null && value != null) {
-        widget.onUOMSelected!(value);
-      }
-    },
-    items: widget.UomOptions.map((uom) {
-      return DropdownMenuItem<String>(
-        value: uom,
-        child: Row(
-          children: [
-            Text(uom),
-            // Show indicator if this is the item's original UOM
-            if (uom == _selectedItem?.selectedUOM) ...[
-              SizedBox(width: 8),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'Item UOM',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.blue.shade700,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
-    }).toList(),
-    decoration: _getInputDecoration(
-      _selectedItem?.selectedUOM != null && _selectedItem!.selectedUOM.isNotEmpty
-        ? 'Item UOM: ${_selectedItem!.selectedUOM} (tap to change)' 
-        : 'Change UOM if needed'
-    ),
-  ),
+  child: _buildUOMButtons(),
 ),
                 // Rate
                 _buildFormField(
@@ -1497,6 +1437,94 @@ Widget _buildTypeDropdown() {
     },
   );
 }
+Widget _buildUOMButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _selectedUOM = 'NOS';
+              });
+              if (widget.onUOMSelected != null) {
+                widget.onUOMSelected!('NOS');
+              }
+              _performCalculations();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _selectedUOM == 'NOS' ? Colors.blue : Colors.grey[200],
+              foregroundColor: _selectedUOM == 'NOS' ? Colors.white : Colors.black87,
+              elevation: _selectedUOM == 'NOS' ? 2 : 0,
+              padding: EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: _selectedUOM == 'NOS' ? Colors.blue : Colors.grey[300]!,
+                  width: _selectedUOM == 'NOS' ? 2 : 1,
+                ),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+               
+                SizedBox(width: 8),
+                Text(
+                  'NOS',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: _selectedUOM == 'NOS' ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _selectedUOM = 'METER';
+              });
+              if (widget.onUOMSelected != null) {
+                widget.onUOMSelected!('METER');
+              }
+              _performCalculations();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _selectedUOM == 'METER' ? Colors.blue : Colors.grey[200],
+              foregroundColor: _selectedUOM == 'METER' ? Colors.white : Colors.black87,
+              elevation: _selectedUOM == 'METER' ? 2 : 0,
+              padding: EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: _selectedUOM == 'METER' ? Colors.blue : Colors.grey[300]!,
+                  width: _selectedUOM == 'METER' ? 2 : 1,
+                ),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                
+                SizedBox(width: 8),
+                Text(
+                  'METER',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: _selectedUOM == 'METER' ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
 
 Widget _buildDesignDropdown() {
   return AnimatedBuilder(
