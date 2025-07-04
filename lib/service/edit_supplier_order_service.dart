@@ -41,11 +41,15 @@ class UpdateSupplierOrderService {
           "uom": _getUomString(product.uom!),
           "rate": product.rate,
           "amount": product.amount,
+          "type" : product.type,
+          "color": product.color,
+          "design": product.design,
           "required_date": "${product.requiredBy.year.toString().padLeft(4, '0')}-${product.requiredBy.month.toString().padLeft(2, '0')}-${product.requiredBy.day.toString().padLeft(2, '0')}",
           "pcs": product.pcs,
           "net_qty": product.netQty, // Net qty can now be manually edited
         }).toList(),
       };
+      print(requestBody);
 
       
 
@@ -95,6 +99,7 @@ class UpdateSupplierOrderService {
         return null;
       }
     } catch (e) {
+      print("error $e");
       _showSnackbar(context, 'Network error: ${e.toString()}', Colors.red);
       return null;
     }

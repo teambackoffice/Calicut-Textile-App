@@ -81,7 +81,7 @@ List<dynamic> _getFilteredOrders(List<dynamic> orders) {
   if (_searchController.text.isNotEmpty) {
     final searchTerm = _searchController.text.toLowerCase();
     filteredOrders = filteredOrders.where((order) {
-      final supplierName = order.supplierName.toLowerCase();
+      final supplierName = (order.supplierName ?? '').toLowerCase();
       final supplierId = order.supplier.toLowerCase();
       
       // Print search terms for debugging
@@ -110,16 +110,13 @@ List<dynamic> _getFilteredOrders(List<dynamic> orders) {
   return filteredOrders;
 }
   bool _isOrderInDateRange(dynamic order) {
-  // Using orderDate field from the Order model
+  // ✅ Safe null checking for orderDate
   if (order.orderDate == null) return true;
   
   try {
     DateTime orderDate = order.orderDate;
     DateTime now = DateTime.now();
     DateTime today = DateTime(now.year, now.month, now.day);
-    
-    // Print dates for debugging
-   
     
     switch (_selectedDateFilter) {
       case 'Today':
@@ -147,6 +144,7 @@ List<dynamic> _getFilteredOrders(List<dynamic> orders) {
         return true;
     }
   } catch (e) {
+    print('Date parsing error: $e');
     return true; // If date parsing fails, include the order
   }
 }
@@ -472,14 +470,15 @@ List<dynamic> _getFilteredOrders(List<dynamic> orders) {
                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                 children: [
                                                   Expanded(
-                                                    child: Text(
+                                                    child:
+                                                    order.supplierName.isNotEmpty ? Text(
                                                       '${order.supplierName}',
                                                       style: const TextStyle(
                                                         fontSize: 16,
                                                         fontWeight: FontWeight.bold,
                                                         color: Color(0xFF1E293B),
                                                       ),
-                                                    ),
+                                                    ): SizedBox()
                                                   ),
                                                   const SizedBox(width: 8),
                                                   Container(
