@@ -123,35 +123,38 @@ Future<void> _loadDropdownData() async {
   }
 
   void _initializeData() {
-    // Create a copy of the order to edit
-    _editedOrder = OrderModel.Order(
-      orderId: widget.order.orderId,
-      supplier: widget.order.supplier,
-      supplierName: widget.order.supplierName,
-      orderDate: widget.order.orderDate,
-      grandTotal: widget.order.grandTotal,
-      status: widget.order.status,
-      products: widget.order.products.map((p) => OrderModel.Product(
-        product: p.product,
-        quantity: p.quantity,
-        uom: p.uom,
-        rate: p.rate,
-        pcs: p.pcs,
-        netQty: p.netQty,
-        amount: p.amount,
-        requiredBy: p.requiredBy, type: p.type, color: p.color, design: p.design,
-      )).toList(),
-    );
+  // Create a copy of the order to edit
+  _editedOrder = OrderModel.Order(
+    orderId: widget.order.orderId,
+    supplier: widget.order.supplier,
+    supplierName: widget.order.supplierName,
+    orderDate: widget.order.orderDate,
+    grandTotal: widget.order.grandTotal,
+    status: widget.order.status,
+    products: widget.order.products.map((p) => OrderModel.Product(
+      product: p.product,
+      quantity: p.quantity,
+      uom: p.uom,
+      rate: p.rate,
+      pcs: p.pcs,
+      netQty: p.netQty,
+      amount: p.amount,
+      requiredBy: p.requiredBy,
+      type: p.type,
+      color: p.color,
+      design: p.design,
+    )).toList(),
+  );
 
-    // Initialize order controllers
-    _orderDateController = TextEditingController(
-        text: "${_editedOrder.orderDate.day}/${_editedOrder.orderDate.month}/${_editedOrder.orderDate.year}");
-    _selectedStatus = _editedOrder.status;
-    _selectedSupplierId = _editedOrder.supplier ?? '';
-    _selectedSupplierName = _editedOrder.supplierName!;
+  // Initialize order controllers
+  _orderDateController = TextEditingController(
+      text: "${_editedOrder.orderDate.day}/${_editedOrder.orderDate.month}/${_editedOrder.orderDate.year}");
+  _selectedStatus = _editedOrder.status;
+  _selectedSupplierId = _editedOrder.supplier ?? '';
+  _selectedSupplierName = _editedOrder.supplierName!;
 
-    // Initialize product controllers with proper number formatting and UOM preservation
-    _productControllers = _editedOrder.products.map((product) {
+  // Initialize product controllers with existing backend data
+  _productControllers = _editedOrder.products.map((product) {
     return ProductControllers(
       productController: TextEditingController(text: product.product),
       quantityController: TextEditingController(text: _formatNumber(product.quantity)),
@@ -162,15 +165,16 @@ Future<void> _loadDropdownData() async {
       requiredByController: TextEditingController(
           text: "${product.requiredBy.day}/${product.requiredBy.month}/${product.requiredBy.year}"),
       
-      // New controllers - initialize with empty values or existing data if available
+      // Initialize with existing backend data
       colorController: TextEditingController(text: product.color ?? ''),
       typeController: TextEditingController(text: product.type ?? ''),
       designController: TextEditingController(text: product.design ?? ''),
       
-      selectedUom: product.uom ?? OrderModel.Uom.NOS,
+      // Store the actual UOM from backend (not defaulting to NOS)
+      selectedUom: product.uom ?? OrderModel.Uom.METER, // Use actual UOM or default
       selectedProductName: product.product,
       
-      // Initialize selected values
+      // Initialize with existing backend values
       selectedColor: product.color,
       selectedType: product.type,
       selectedDesign: product.design,
@@ -180,14 +184,13 @@ Future<void> _loadDropdownData() async {
   // Initialize focus nodes and states for existing products
   _initializeFocusNodesAndStates();
 
-
-    // Ensure calculations are correct on initialization
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      for (int i = 0; i < _productControllers.length; i++) {
-        _calculateAmount(i); // Calculate amount based on existing values
-      }
-    });
-  }
+  // Ensure calculations are correct on initialization
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    for (int i = 0; i < _productControllers.length; i++) {
+      _calculateAmount(i);
+    }
+  });
+}
   void _initializeFocusNodesAndStates() {
   // Clear existing
   for (var node in _colorFocusNodes) node.dispose();
@@ -243,6 +246,9 @@ void _onDesignFocusChange(int index) {
 }
 
   Future<void> _loadData() async {
+  setState(() => _isLoading = true);
+  
+  try {
     // Load products and suppliers
     await Future.wait([
       Provider.of<ProductListController>(context, listen: false).fetchProducts(),
@@ -263,19 +269,137 @@ void _onDesignFocusChange(int index) {
         _selectedSupplierName = _availableSuppliers.first.supplierName;
       }
       
-      // Validate selected products exist in the list, but preserve UOM
+      // Load item-specific data for each existing product
       for (int i = 0; i < _productControllers.length; i++) {
         final selectedProductName = _productControllers[i].selectedProductName;
         final productExists = _availableProducts.any((product) => product.name == selectedProductName);
-        if (!productExists && selectedProductName.isNotEmpty) {
-          _productControllers[i].selectedProductName = '';
-          // Don't reset UOM here - keep the original fetched UOM
+        
+        if (productExists && selectedProductName.isNotEmpty) {
+          // Fetch item-specific data from backend
+          await _fetchItemSpecificData(i, selectedProductName);
         }
       }
       
-      setState(() {});
+      setState(() => _isLoading = false);
+    }
+  } catch (e) {
+    if (mounted) {
+      setState(() => _isLoading = false);
+      _showValidationError('Error loading data: $e');
     }
   }
+}
+Future<void> _fetchItemSpecificData(int index, String productName) async {
+  try {
+    // Replace these with your actual API service calls
+    
+    // Fetch available UOMs for this specific product
+    final availableUoms = await _fetchProductUoms(productName);
+    
+    // Fetch available colors for this specific product  
+    final availableColors = await _fetchProductColors(productName);
+    
+    // Fetch available types for this specific product
+    final availableTypes = await _fetchProductTypes(productName);
+    
+    // Fetch available designs for this specific product
+    final availableDesigns = await _fetchProductDesigns(productName);
+    
+    // Update the controller with fetched data
+    if (mounted) {
+      setState(() {
+        // Update available options for this product
+        _productControllers[index].availableUoms = availableUoms;
+        _productControllers[index].availableColors = availableColors;
+        _productControllers[index].availableTypes = availableTypes;
+        _productControllers[index].availableDesigns = availableDesigns;
+        
+        // Validate current selections against available options
+        _validateAndUpdateSelections(index);
+      });
+    }
+  } catch (e) {
+    print('Error fetching item-specific data: $e');
+    // Handle error gracefully - maybe show a warning but don't block the UI
+  }
+}
+Future<List<OrderModel.Uom>> _fetchProductUoms(String productName) async {
+  // Replace with your actual API call
+  // Example: return await ProductService.getProductUoms(productName);
+  
+  // For now, return default UOMs - replace with actual API call
+  return [
+    OrderModel.Uom.METER,
+    OrderModel.Uom.NOS,
+   
+  ];
+}
+Future<List<String>> _fetchProductColors(String productName) async {
+  // Replace with your actual API call
+  // Example: return await ProductService.getProductColors(productName);
+  
+  // For now, use the general colors controller
+  await _colorsController.loadColors();
+  return _colorsController.colors;
+}
+
+Future<List<String>> _fetchProductTypes(String productName) async {
+  // Replace with your actual API call
+  // Example: return await ProductService.getProductTypes(productName);
+  
+  // For now, use the general types controller
+  await _typesController.loadTextileTypes();
+  return _typesController.textileTypes;
+}
+
+Future<List<String>> _fetchProductDesigns(String productName) async {
+  // Replace with your actual API call
+  // Example: return await ProductService.getProductDesigns(productName);
+  
+  // For now, use the general designs controller
+  await _designsController.loadDesigns();
+  return _designsController.designs;
+}
+void _validateAndUpdateSelections(int index) {
+  final controller = _productControllers[index];
+  
+  // Validate UOM
+  if (controller.availableUoms != null && 
+      !controller.availableUoms!.contains(controller.selectedUom)) {
+    // If current UOM is not available, set to first available or default
+    controller.selectedUom = controller.availableUoms!.isNotEmpty 
+        ? controller.availableUoms!.first 
+        : OrderModel.Uom.METER;
+  }
+  
+  // Validate Color
+  if (controller.availableColors != null && 
+      controller.selectedColor != null &&
+      !controller.availableColors!.contains(controller.selectedColor)) {
+    // If current color is not available, clear selection
+    controller.selectedColor = null;
+    controller.colorController.clear();
+  }
+  
+  // Validate Type
+  if (controller.availableTypes != null && 
+      controller.selectedType != null &&
+      !controller.availableTypes!.contains(controller.selectedType)) {
+    // If current type is not available, clear selection
+    controller.selectedType = null;
+    controller.typeController.clear();
+  }
+  
+  // Validate Design
+  if (controller.availableDesigns != null && 
+      controller.selectedDesign != null &&
+      !controller.availableDesigns!.contains(controller.selectedDesign)) {
+    // If current design is not available, clear selection
+    controller.selectedDesign = null;
+    controller.designController.clear();
+  }
+}
+
 
   @override
   void dispose() {
@@ -1436,37 +1560,40 @@ Future<void> _showSupplierSearchDialog() async {
     );
   }
 
-  Widget _buildUomDropdown(int index) {
-    final selected = _productControllers[index].selectedUom;
-    // Don't set to null if it's EMPTY, instead use the actual selected value
-    final selectedValue = selected;
-
-    return DropdownButtonFormField<OrderModel.Uom>(
-      isExpanded: true,
-      value: selectedValue == OrderModel.Uom.NOS ? null : selectedValue,
-      decoration: InputDecoration(
-        labelText: 'UOM',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      ),
-      hint: const Text('Select UOM'),
-      items: OrderModel.Uom.values
-          .where((uom) => uom != OrderModel.Uom.NOS)
-          .map((uom) => DropdownMenuItem(
-                value: uom,
-                child: Text(_getUomDisplayText(uom)),
-              ))
-          .toList(),
-      onChanged: (value) {
-        setState(() {
-          _productControllers[index].selectedUom = value ?? OrderModel.Uom.NOS;
-        });
-      },
-     validator: (value) => value == null ? 'UOM is required' : null,
-    );
-  }
-
+ Widget _buildUomDropdown(int index) {
+  final controller = _productControllers[index];
+  final availableUoms = controller.availableUoms ?? [OrderModel.Uom.METER, OrderModel.Uom.NOS];
   
+  return DropdownButtonFormField<OrderModel.Uom>(
+    isExpanded: true,
+    value: controller.selectedUom,
+    decoration: InputDecoration(
+      labelText: 'UOM',
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+    ),
+    hint: const Text('Select UOM'),
+    items: availableUoms.map((uom) => DropdownMenuItem(
+      value: uom,
+      child: Text(_getUomDisplayText(uom)),
+    )).toList(),
+    onChanged: (value) {
+      setState(() {
+        _productControllers[index].selectedUom = value ?? OrderModel.Uom.METER;
+      });
+    },
+    validator: (value) => value == null ? 'UOM is required' : null,
+  );
+}
+Future<void> _onProductSelected(int index, String productName) async {
+  setState(() {
+    _productControllers[index].selectedProductName = productName;
+    _productControllers[index].productController.text = productName;
+  });
+  
+  // Fetch item-specific data for the newly selected product
+  await _fetchItemSpecificData(index, productName);
+}
 
   Widget _buildReadOnlyField(String label, String value) {
     return Column(
@@ -1513,7 +1640,7 @@ Future<void> _showSupplierSearchDialog() async {
       case OrderModel.Uom.METER:
         return 'Meter';
       
-        return '';
+        
     }
   }
   // Add these searchable dropdown methods to _EditSupplierOrderPageState
@@ -1601,98 +1728,93 @@ Widget _buildSearchableColorField(int index) {
         },
       ),
       
-      // Dropdown List
+      // Dropdown List using item-specific colors
       if (index < _showColorDropdowns.length && _showColorDropdowns[index]) ...[
         SizedBox(height: 4),
-        AnimatedBuilder(
-          animation: _colorsController,
-          builder: (context, child) {
-            if (_colorsController.isLoading) {
-              return _buildLoadingContainer('Loading colors...');
-            }
-            
-            if (_colorsController.hasError) {
-              return _buildErrorContainer('Error loading colors');
-            }
-            
-            final filteredColors = _getFilteredColors(index);
-            
-            if (filteredColors.isEmpty) {
-              return _buildEmptyContainer('No colors found');
-            }
-            
-            return Container(
-              constraints: BoxConstraints(maxHeight: 200),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: filteredColors.length,
-                itemBuilder: (context, listIndex) {
-                  final color = filteredColors[listIndex];
-                  final isSelected = _productControllers[index].selectedColor == color;
-                  
-                  return InkWell(
-                    onTap: () {
-                      setState(() {
-                        _productControllers[index].selectedColor = color;
-                        _productControllers[index].colorController.text = color;
-                        if (index < _colorSearchQueries.length) {
-                          _colorSearchQueries[index] = color;
-                        }
-                        if (index < _showColorDropdowns.length) {
-                          _showColorDropdowns[index] = false;
-                        }
-                      });
-                      if (index < _colorFocusNodes.length) {
-                        _colorFocusNodes[index].unfocus();
-                      }
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.blue.shade50 : null,
-                        border: listIndex > 0 ? Border(top: BorderSide(color: Colors.grey[200]!)) : null,
-                      ),
-                      child: Row(
-                        children: [
-                          
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              color,
-                              style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                color: isSelected ? Colors.blue.shade700 : Colors.black87,
-                              ),
-                            ),
-                          ),
-                          if (isSelected)
-                            Icon(Icons.check, color: Colors.blue.shade700, size: 20),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            );
-          },
-        ),
+        _buildColorDropdownList(index),
       ],
     ],
   );
 }
-
+Widget _buildColorDropdownList(int index) {
+  final controller = _productControllers[index];
+  final availableColors = controller.availableColors ?? _colorsController.colors;
+  final query = index < _colorSearchQueries.length ? _colorSearchQueries[index] : '';
+  
+  final filteredColors = query.isEmpty 
+      ? availableColors
+      : availableColors.where((color) => 
+          color.toLowerCase().contains(query.toLowerCase())).toList();
+  
+  if (filteredColors.isEmpty) {
+    return _buildEmptyContainer('No colors available for this product');
+  }
+  
+  return Container(
+    constraints: BoxConstraints(maxHeight: 200),
+    decoration: BoxDecoration(
+      border: Border.all(color: Colors.grey[300]!),
+      borderRadius: BorderRadius.circular(8),
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.1),
+          blurRadius: 4,
+          offset: Offset(0, 2),
+        ),
+      ],
+    ),
+    child: ListView.builder(
+      shrinkWrap: true,
+      itemCount: filteredColors.length,
+      itemBuilder: (context, listIndex) {
+        final color = filteredColors[listIndex];
+        final isSelected = _productControllers[index].selectedColor == color;
+        
+        return InkWell(
+          onTap: () {
+            setState(() {
+              _productControllers[index].selectedColor = color;
+              _productControllers[index].colorController.text = color;
+              if (index < _colorSearchQueries.length) {
+                _colorSearchQueries[index] = color;
+              }
+              if (index < _showColorDropdowns.length) {
+                _showColorDropdowns[index] = false;
+              }
+            });
+            if (index < _colorFocusNodes.length) {
+              _colorFocusNodes[index].unfocus();
+            }
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.blue.shade50 : null,
+              border: listIndex > 0 ? Border(top: BorderSide(color: Colors.grey[200]!)) : null,
+            ),
+            child: Row(
+              children: [
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    color,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      color: isSelected ? Colors.blue.shade700 : Colors.black87,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  Icon(Icons.check, color: Colors.blue.shade700, size: 20),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
 // Searchable Type Field Widget  
 Widget _buildSearchableTypeField(int index) {
   if (index >= _productControllers.length) return SizedBox.shrink();
@@ -2081,7 +2203,7 @@ class ProductControllers {
   final TextEditingController amountController;
   final TextEditingController requiredByController;
   
-  // New controllers for color, type, design
+  // Controllers for color, type, design
   final TextEditingController colorController;
   final TextEditingController typeController;
   final TextEditingController designController;
@@ -2089,10 +2211,22 @@ class ProductControllers {
   OrderModel.Uom selectedUom;
   String selectedProductName;
   
-  // New fields for selected values
+  // Selected values
   String? selectedColor;
   String? selectedType;
   String? selectedDesign;
+  
+  // NEW: Item-specific available options from backend
+  List<OrderModel.Uom>? availableUoms;
+  List<String>? availableColors;
+  List<String>? availableTypes;
+  List<String>? availableDesigns;
+  
+  // NEW: Loading states for each dropdown
+  bool isLoadingUoms = false;
+  bool isLoadingColors = false;
+  bool isLoadingTypes = false;
+  bool isLoadingDesigns = false;
 
   ProductControllers({
     required this.productController,
@@ -2102,14 +2236,19 @@ class ProductControllers {
     required this.netQtyController,
     required this.amountController,
     required this.requiredByController,
-    required this.colorController,      // NEW
-    required this.typeController,       // NEW
-    required this.designController,     // NEW
+    required this.colorController,
+    required this.typeController,
+    required this.designController,
     required this.selectedUom,
     required this.selectedProductName,
-    this.selectedColor,                 // NEW
-    this.selectedType,                  // NEW
-    this.selectedDesign,                // NEW
+    this.selectedColor,
+    this.selectedType,
+    this.selectedDesign,
+    // NEW: Initialize item-specific options
+    this.availableUoms,
+    this.availableColors,
+    this.availableTypes,
+    this.availableDesigns,
   });
 
   void dispose() {
@@ -2120,18 +2259,30 @@ class ProductControllers {
     netQtyController.dispose();
     amountController.dispose();
     requiredByController.dispose();
-    colorController.dispose();          // NEW
-    typeController.dispose();           // NEW
-    designController.dispose();  
-  //   colorsController.dispose();
-  //   designsController.dispose();
-  //   typesController.dispose();
-  
-  // // Dispose focus nodes
-  // for (var node in _colorFocusNodes) node.dispose();
-  // for (var node in _typeFocusNodes) node.dispose();
-  // for (var node in _designFocusNodes) node.dispose();
-  
-  // super.dispose();       // NEW
+    colorController.dispose();
+    typeController.dispose();
+    designController.dispose();
   }
+  void clearItemSpecificData() {
+    availableUoms = null;
+    availableColors = null;
+    availableTypes = null;
+    availableDesigns = null;
+    
+    selectedColor = null;
+    selectedType = null;
+    selectedDesign = null;
+    
+    colorController.clear();
+    typeController.clear();
+    designController.clear();
+  }
+  
+  // NEW: Method to check if item-specific data is loaded
+  bool get hasItemSpecificData => 
+      availableUoms != null || 
+      availableColors != null || 
+      availableTypes != null || 
+      availableDesigns != null;
+
 }

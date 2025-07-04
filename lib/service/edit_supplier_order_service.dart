@@ -14,6 +14,7 @@ class UpdateSupplierOrderService {
     required BuildContext context,
   }) async {
     final uri = Uri.parse(baseUrl);
+    print(uri);
     
     try {
       // Get cookies from secure storage (you might need to adjust this based on your storage)
