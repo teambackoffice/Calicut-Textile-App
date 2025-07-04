@@ -3,7 +3,7 @@ import 'package:calicut_textile_app/modal/get_colours_modal.dart';
 import 'package:http/http.dart' as http;
 
 class ColorsService {
-  static const String baseUrl = 'https://calicuttextiles.tbo365.cloud';
+  static const String baseUrl = 'https://erp.calicuttextiles.com';
   static const String endpoint = '/api/method/calicut_textiles.api.auth.get_all_colours';
 
   // Headers for authentication

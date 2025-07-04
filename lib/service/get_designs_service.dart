@@ -3,7 +3,7 @@ import 'package:calicut_textile_app/modal/get_designs.dart';
 import 'package:http/http.dart' as http;
 
 class DesignsService {
-  static const String baseUrl = 'https://calicuttextiles.tbo365.cloud';
+  static const String baseUrl = 'https://erp.calicuttextiles.com';
   static const String endpoint = '/api/method/calicut_textiles.api.auth.get_all_designs';
 
   // Headers for authentication
