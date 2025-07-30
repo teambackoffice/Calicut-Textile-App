@@ -1,11 +1,12 @@
 import 'package:calicut_textile_app/view/login_screen/login_page.dart';
+import 'package:calicut_textile_app/view/main_screen/products/products.dart';
 import 'package:calicut_textile_app/view/main_screen/purchase_order/purchase_order_page.dart';
 import 'package:calicut_textile_app/view/main_screen/supplier/supplier_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class Homepage extends StatefulWidget {
-  const Homepage({Key? key}) : super(key: key);
+  const Homepage({super.key});
 
   @override
   State<Homepage> createState() => _HomepageState();
@@ -31,87 +32,74 @@ class _HomepageState extends State<Homepage> {
   void logout() async {
     bool? confirm = await showDialog(
       context: context,
-      builder: (context) =>  AlertDialog(
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(16),
-  ),
-  title: Row(
-    children: [
-      Icon(
-        Icons.logout,
-        color: Colors.blue[900],
-        size: 24,
-      ),
-      SizedBox(width: 12),
-      Text(
-        'Confirm Logout',
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.logout, color: Colors.blue[900], size: 24),
+            SizedBox(width: 12),
+            Text(
+              'Confirm Logout',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ],
         ),
-      ),
-    ],
-  ),
-  content: Padding(
-    padding: EdgeInsets.symmetric(vertical: 8),
-    child: Text(
-      'Are you sure you want to logout? ',
-      style: TextStyle(
-        fontSize: 16,
-        color: Colors.black,
-        height: 1.4,
-      ),
-    ),
-  ),
-  actionsPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-  actions: [
-    TextButton(
-      onPressed: () => Navigator.of(context).pop(false),
-      style: TextButton.styleFrom(
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+        content: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            'Are you sure you want to logout? ',
+            style: TextStyle(fontSize: 16, color: Colors.black, height: 1.4),
+          ),
         ),
+        actionsPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+          SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[900],
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+            child: Text(
+              'Logout',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
       ),
-      child: Text(
-        'Cancel',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.grey[600],
-        ),
-      ),
-    ),
-    SizedBox(width: 8),
-    ElevatedButton(
-      onPressed: () => Navigator.of(context).pop(true),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue[900],
-        foregroundColor: Colors.white,
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        elevation: 0,
-      ),
-      child: Text(
-        'Logout',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    ),
-  ],
-)
     );
 
     if (confirm == true) {
       await _secureStorage.deleteAll();
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (context) => LoginScreen()));
     }
   }
 
@@ -134,8 +122,11 @@ class _HomepageState extends State<Homepage> {
         title: Row(
           children: [
             Container(
-              
-              child: Image.asset("assets/calicutlogo.png", height: 45, width: 45),
+              child: Image.asset(
+                "assets/calicutlogo.png",
+                height: 45,
+                width: 45,
+              ),
             ),
             const SizedBox(width: 12),
             Text(
@@ -151,7 +142,7 @@ class _HomepageState extends State<Homepage> {
         actions: [
           Container(
             margin: EdgeInsets.only(right: 16),
-            
+
             child: IconButton(
               icon: Icon(Icons.logout, color: Colors.blue[900]),
               onPressed: logout,
@@ -204,15 +195,15 @@ class _HomepageState extends State<Homepage> {
                   ),
                   SizedBox(height: 8),
                   Text(
-  fullName.isNotEmpty
-      ? '${fullName[0].toUpperCase()}${fullName.substring(1)}'
-      : 'Welcome!',
-  style: TextStyle(
-    fontSize: 28,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-  ),
-),
+                    fullName.isNotEmpty
+                        ? '${fullName[0].toUpperCase()}${fullName.substring(1)}'
+                        : 'Welcome!',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
 
                   SizedBox(height: 12),
                   Text(
@@ -229,9 +220,6 @@ class _HomepageState extends State<Homepage> {
             const SizedBox(height: 32),
 
             // Quick Stats Section
-           
-
-            
 
             // Section Title
             Text(
@@ -242,7 +230,7 @@ class _HomepageState extends State<Homepage> {
                 color: Colors.black87,
               ),
             ),
-            
+
             const SizedBox(height: 16),
 
             // Enhanced Menu Items
@@ -250,8 +238,8 @@ class _HomepageState extends State<Homepage> {
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+              crossAxisSpacing: 15,
+              mainAxisSpacing: 15,
               childAspectRatio: 1.1,
               children: [
                 _buildEnhancedMenuItem(
@@ -262,7 +250,9 @@ class _HomepageState extends State<Homepage> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => PurchaseOrderPage()),
+                      MaterialPageRoute(
+                        builder: (context) => PurchaseOrderPage(),
+                      ),
                     );
                   },
                 ),
@@ -278,15 +268,24 @@ class _HomepageState extends State<Homepage> {
                     );
                   },
                 ),
-                
+                _buildEnhancedMenuItem(
+                  icon: Icons.shopping_cart_outlined,
+                  title: 'Products',
+                  subtitle: 'View all products',
+                  color: Colors.blue,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AllProducts()),
+                    );
+                  },
+                ),
               ],
             ),
 
             const SizedBox(height: 32),
 
             // Recent Activity Section
-            
-
             const SizedBox(height: 20),
           ],
         ),
@@ -294,7 +293,6 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  
   Widget _buildEnhancedMenuItem({
     required IconData icon,
     required String title,
@@ -341,15 +339,11 @@ class _HomepageState extends State<Homepage> {
             SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
       ),
     );
   }
-
 }

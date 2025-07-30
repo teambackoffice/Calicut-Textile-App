@@ -47,6 +47,23 @@ class PurchaseOrderItem {
   });
 
   double get total => netQty != null ? netQty! * rate : quantity * rate;
+  PurchaseOrderItem copy() {
+    return PurchaseOrderItem(
+      itemCode: itemCode,
+      itemName: itemName,
+      quantity: quantity,
+      pcs: pcs,
+      netQty: netQty,
+      rate: rate,
+      color: color,
+      type: type,
+      design: design,
+      amount: amount,
+      uom: uom,
+      imageCount: imageCount,
+      imagePaths: List<String>.from(imagePaths),
+    );
+  }
 }
 
 class CreatePurchaseOrder extends StatefulWidget {
@@ -1337,6 +1354,15 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
     );
   }
 
+  void _duplicateItem(int index) {
+    final originalItem = items[index];
+    final duplicatedItem = originalItem.copy();
+
+    setState(() {
+      items.insert(index + 1, duplicatedItem);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalImages = _getAllItemImages().length;
@@ -1615,6 +1641,34 @@ class _CreatePurchaseOrderState extends State<CreatePurchaseOrder> {
                                           tooltip: _showEditForm
                                               ? 'Cannot delete while editing'
                                               : 'Delete Item',
+                                        ),
+                                      ),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.shade50,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: IconButton(
+                                          onPressed: _showEditForm
+                                              ? null
+                                              : () => _duplicateItem(index),
+                                          icon: Icon(
+                                            Icons.copy,
+                                            color: _showEditForm
+                                                ? Colors.grey.shade400
+                                                : Colors.orange.shade600,
+                                            size: 20,
+                                          ),
+                                          constraints: const BoxConstraints(
+                                            minWidth: 36,
+                                            minHeight: 36,
+                                          ),
+                                          padding: const EdgeInsets.all(8),
+                                          tooltip: _showEditForm
+                                              ? 'Cannot duplicate while editing'
+                                              : 'Duplicate Item',
                                         ),
                                       ),
                                     ],
