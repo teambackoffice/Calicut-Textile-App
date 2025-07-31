@@ -7,6 +7,7 @@ import 'package:calicut_textile_app/controller/login_controller.dart';
 import 'package:calicut_textile_app/controller/product_controller.dart';
 import 'package:calicut_textile_app/controller/supplier_group_controller.dart';
 import 'package:calicut_textile_app/controller/supplier_list_controller.dart';
+import 'package:calicut_textile_app/controller/update_product_controller.dart';
 import 'package:calicut_textile_app/view/login_screen/login_page.dart';
 import 'package:calicut_textile_app/view/main_screen/homepage.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +27,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => ColorsController()),
         ChangeNotifierProvider(create: (_) => DesignsController()),
         ChangeNotifierProvider(create: (_) => TextileTypesController()),
+        ChangeNotifierProvider(create: (_) => UpdateProductController()),
       ],
       child: MyApp(),
     ),
@@ -33,6 +35,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -43,6 +47,8 @@ class MyApp extends StatelessWidget {
 }
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
@@ -77,7 +83,9 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(child: Image.asset('assets/calicutlogo.png',width: 200, height: 200)), // Simple loading indicator
+      body: Center(
+        child: Image.asset('assets/calicutlogo.png', width: 200, height: 200),
+      ), // Simple loading indicator
     );
   }
 }
